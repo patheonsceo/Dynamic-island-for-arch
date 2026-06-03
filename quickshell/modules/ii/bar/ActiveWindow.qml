@@ -9,6 +9,8 @@ import Quickshell.Hyprland
 
 Item {
     id: root
+    // Compact: single line (title only), short "Desktop" idle label. For the island pill.
+    property bool compact: false
     readonly property HyprlandMonitor monitor: Hyprland.monitorFor(root.QsWindow.window?.screen)
     readonly property Toplevel activeWindow: ToplevelManager.activeToplevel
 
@@ -28,10 +30,11 @@ Item {
 
         StyledText {
             Layout.fillWidth: true
+            visible: !root.compact
             font.pixelSize: Appearance.font.pixelSize.smaller
             color: Appearance.colors.colSubtext
             elide: Text.ElideRight
-            text: root.focusingThisMonitor && root.activeWindow?.activated && root.biggestWindow ? 
+            text: root.focusingThisMonitor && root.activeWindow?.activated && root.biggestWindow ?
                 root.activeWindow?.appId :
                 (root.biggestWindow?.class) ?? Translation.tr("Desktop")
 
@@ -42,9 +45,9 @@ Item {
             font.pixelSize: Appearance.font.pixelSize.small
             color: Appearance.colors.colOnLayer0
             elide: Text.ElideRight
-            text: root.focusingThisMonitor && root.activeWindow?.activated && root.biggestWindow ? 
+            text: root.focusingThisMonitor && root.activeWindow?.activated && root.biggestWindow ?
                 root.activeWindow?.title :
-                (root.biggestWindow?.title) ?? `${Translation.tr("Workspace")} ${monitor?.activeWorkspace?.id ?? 1}`
+                (root.biggestWindow?.title) ?? (root.compact ? Translation.tr("Desktop") : `${Translation.tr("Workspace")} ${monitor?.activeWorkspace?.id ?? 1}`)
         }
 
     }

@@ -1,21 +1,21 @@
 pragma ComponentBehavior: Bound
 import qs
+import qs.services
 import qs.modules.common
 import qs.modules.common.widgets
+import qs.modules.ii.bar
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Wayland
+import Quickshell.Hyprland
 
 // Left floating island — top-left.
-// Phase 1: static themed pill placeholder.
-// Later: workspace dots + active window title (click → sidebarLeftOpen).
+// Custom workspace indicator + active window title (ActiveWindow, compact).
+// Left-click pill → toggle left sidebar. Right-click workspaces → overview.
+// Shared geometry/colors come from IslandStyle (see notch & right islands).
 Scope {
     id: root
-
-    // Shared floating-island geometry tokens
-    readonly property int islandMargin: 8
-    readonly property int pillHeight: 34
 
     Variants {
         model: Quickshell.screens
@@ -36,32 +36,54 @@ Scope {
                 left: true
             }
             margins {
-                top: root.islandMargin
-                left: root.islandMargin
+                top: IslandStyle.margin
+                left: IslandStyle.margin
             }
 
             implicitWidth: pill.implicitWidth
-            implicitHeight: root.pillHeight
+            implicitHeight: IslandStyle.pillHeight
 
             Rectangle {
                 id: pill
                 anchors.fill: parent
-                radius: Appearance.rounding.full
-                color: Appearance.colors.colLayer0
-                border.width: 1
-                border.color: Appearance.colors.colLayer0Border
+                radius: IslandStyle.radius
+                color: IslandStyle.pillColor
+                border.width: IslandStyle.borderWidth
+                border.color: IslandStyle.pillBorder
 
-                implicitWidth: leftRow.implicitWidth + 28
+                implicitWidth: contentRow.implicitWidth + IslandStyle.hPadding * 2
+
+                // Base layer: left-click anywhere on the pill toggles the left sidebar.
+                // Workspace buttons / title sit above and handle their own clicks.
+                MouseArea {
+                    anchors.fill: parent
+                    acceptedButtons: Qt.LeftButton
+                    onPressed: GlobalStates.sidebarLeftOpen = !GlobalStates.sidebarLeftOpen
+                }
 
                 RowLayout {
-                    id: leftRow
-                    anchors.centerIn: parent
+                    id: contentRow
+                    anchors.fill: parent
+                    anchors.leftMargin: IslandStyle.hPadding
+                    anchors.rightMargin: IslandStyle.hPadding
                     spacing: 8
 
-                    StyledText {
-                        text: "left"
-                        color: Appearance.colors.colOnLayer0
-                        font.pixelSize: Appearance.font.pixelSize.normal
+                    // Custom reference-style indicator: uniform-spaced dots + expanding
+                    // current-workspace capsule. Scroll = switch, right-click = overview.
+                    IslandWorkspaces {
+                        Layout.fillHeight: true
+                        Layout.alignment: Qt.AlignVCenter
+                        usedColor: IslandStyle.textColor   // used (not current) → white
+                        activeColor: IslandStyle.accent    // current → blue-tinted
+                        emptyOpacity: IslandStyle.inactiveOpacity
+                        capsuleWidth: 32                   // current capsule a bit longer
+                    }
+
+                    ActiveWindow {
+                        compact: true
+                        Layout.fillHeight: true
+                        Layout.maximumWidth: 160
+                        Layout.alignment: Qt.AlignVCenter
                     }
                 }
             }

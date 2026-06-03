@@ -7,9 +7,13 @@ lives in `NOTES.md`.
 
 ## Current phase & status
 
-**Phase 1 — Floating skeleton: DONE & VERIFIED (user screenshot, 2026-06-03).**
-Three floating pills (`left` / `notch` / `right`) render top-left/center/right with
-wallpaper through the gaps and no full-width bar. Next: Phase 2.
+**Phase 2 — Populate islands: LEFT DONE & VERIFIED (2026-06-03). Right island next.**
+Left island: custom workspace indicator + compact active-window title, styled via a
+shared `IslandStyle` singleton (space-black solid pill, white/blue accents, 4px
+margin, 32px height). Now building the right island (resources · clock · battery ·
+tray · wifi/bt) reusing end-4 widgets + the same `IslandStyle`.
+
+Phase 1 (skeleton) done & verified earlier.
 
 - Phase 0 (orient) complete and committed; nested dev window confirmed by user.
 - Disabled the full-width `Bar` PanelLoader; added `IslandLeft` / `IslandNotch` /
@@ -30,6 +34,23 @@ notch doesn't morph. That's Phases 2–3.
 ---
 
 ## Done (newest first)
+
+- **2026-06-03 — Phase 2 LEFT island.** Built the left island iteratively with the user:
+  - `IslandWorkspaces.qml` (custom): a `Row` of uniform-spaced dots where the CURRENT
+    workspace is a capsule (same height as dots) that **expands and pushes neighbours**
+    apart → genuinely uniform gaps + fluid 280ms animation. Reuses end-4's Hyprland
+    dispatch (`hl.dsp.focus`) + occupancy logic. Used dots = white, unused = faint,
+    current = blue-tint. Scroll = switch ws, right-click = overview, left-click = focus.
+    (Earlier tried bending the reused end-4 `Workspaces.qml` via override props, but
+    fixed slots can't give uniform spacing around an elongated capsule — reverted that
+    file to pristine and went custom.)
+  - `ActiveWindow.qml`: added `compact` mode (single-line title, short "Desktop" idle
+    label) — default off, so the disabled bar is unaffected.
+  - `IslandStyle.qml` (singleton): shared tokens — solid space-black `#0B0B0E` pill,
+    white text, `#8AB4F8` blue accent, 4px edge margin, 32px height, full radius. ALL
+    islands use this for consistency.
+  - Left-click pill → `sidebarLeftOpen`. Verified by user across several rounds of
+    color/spacing/size tuning.
 
 - **2026-06-03 — Phase 0 orientation.**
   - Read `~/Projects/island-reference/hyprfabricated/modules/notch.py` (995 lines) and

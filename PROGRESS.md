@@ -7,20 +7,25 @@ lives in `NOTES.md`.
 
 ## Current phase & status
 
-**Phase 0 — Orient: DONE (pending user confirmation of the nested dev window).**
+**Phase 1 — Floating skeleton: DONE & VERIFIED (user screenshot, 2026-06-03).**
+Three floating pills (`left` / `notch` / `right`) render top-left/center/right with
+wallpaper through the gaps and no full-width bar. Next: Phase 2.
 
-- Reference (`modules/notch.py`, `utils/animator.py`) read and analyzed.
-- `NOTES.md` created: reference findings, Fabric→Quickshell mapping table,
-  three-island architecture, full notch state machine + precedence, agent bridge
-  design (socket, hooks, JSON schema, blocking protocol, safety/timeout).
-- `PROGRESS.md` created (this file).
-- Dev environment verified present (see "Done").
-- **Nothing renders yet** — the islands are not wired into the panel family.
+- Phase 0 (orient) complete and committed; nested dev window confirmed by user.
+- Disabled the full-width `Bar` PanelLoader; added `IslandLeft` / `IslandNotch` /
+  `IslandRight` PanelLoaders to `IllogicalImpulseFamily.qml`.
+- Built three components in `modules/ii/island/`, each a `Scope { Variants { model:
+  Quickshell.screens; PanelWindow {…} } }` → renders on every monitor. Transparent
+  window bg, rounded themed pill (`colLayer0` + `colLayer0Border`,
+  `rounding.full`), floating via layer-shell `margins` (8 px). Left anchored
+  top-left, Notch top-center (top-only anchor → auto-centered), Right top-right.
+- Static `"left"` / `"notch"` / `"right"` placeholder labels for now.
+- Removed superseded `Island.qml`. Kept `IslandContent.qml` as the Phase-3 notch sketch.
 
-**What works:** repo, runtime symlink, nested dev config all in place. end-4 base
-shell loads (`openagentisland` config).
-**What doesn't:** no islands shown — `Bar` still active, `Island {}` PanelLoader still
-commented out. The three island components don't exist yet (only a skeleton sketch).
+**What works (expected):** three floating rounded pills at top-left / center / right,
+wallpaper through the gaps, no full-width bar — on every monitor.
+**What doesn't yet:** pills are static placeholders (no workspaces/clock/metrics);
+notch doesn't morph. That's Phases 2–3.
 
 ---
 
@@ -79,6 +84,25 @@ commented out. The three island components don't exist yet (only a skeleton sket
 
 ## Gotchas hit
 
+- **⚠ HOT-RELOAD DOESN'T FIRE FROM CLAUDE'S FILE WRITES (critical, every phase).**
+  Claude's Write/Edit tools save *atomically* (write temp + rename → new inode), and
+  Quickshell's file watcher is on the old inode, so it never sees the change. Symptom:
+  you edit a `.qml`, nothing updates in the nested window, and there's NO red error
+  panel (suppressed by `//@ pragma Env QS_NO_RELOAD_POPUP=1` in `shell.qml`). Diagnosed
+  via `qs -c openagentisland log` (shows "Configuration Loaded" only at launch, no
+  reload). Also: a **plain `touch` does NOT reload** (mtime/IN_ATTRIB ignored); only a
+  real content change (IN_MODIFY) does, and it must *persist* (append+immediate-truncate
+  nets zero and gets coalesced → no reload).
+  **Reliable reload nudge after editing QML** (in-place, then restore so git stays clean):
+  ```bash
+  bash -c "printf '%s\n' '// reload-nudge' >> ~/Projects/openagentisland/quickshell/shell.qml"
+  sleep 2   # let Quickshell reload from current disk state
+  cd ~/Projects/openagentisland/quickshell && git checkout shell.qml   # remove the nudge line
+  ```
+  When the **user** saves from their own editor, normal hot-reload works fine — this
+  only affects Claude's tool-writes. `qs -c openagentisland log` is the way to read
+  silenced QML errors (note the log/"Configuration Loaded" counter appears capped, so
+  trust the screenshot + error lines, not the reload count).
 - User shell is **fish** — no `<<EOF` heredocs; write files with tools or
   `printf`/`cat` inside `bash -c '...'`. (A chained `ls A B && find …` failed because
   fish/`ls` returned exit 2 when one path was missing and short-circuited the `&&`.)

@@ -25,8 +25,11 @@ import qs.modules.ii.verticalBar
 import qs.modules.ii.wallpaperSelector
 
 Scope {
-    PanelLoader { extraCondition: !Config.options.bar.vertical; component: Bar {} }
-    // PanelLoader { component: Island {} }
+    // OpenAgentIsland: full-width Bar disabled in favor of three floating islands.
+    // PanelLoader { extraCondition: !Config.options.bar.vertical; component: Bar {} }
+    PanelLoader { component: IslandLeft {} }
+    PanelLoader { component: IslandNotch {} }
+    PanelLoader { component: IslandRight {} }
     PanelLoader { component: Background {} }
     PanelLoader { component: Cheatsheet {} }
     PanelLoader { extraCondition: Config.options.dock.enable; component: Dock {} }

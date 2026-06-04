@@ -68,11 +68,9 @@ FocusScope {
             Layout.fillWidth: true
             Layout.fillHeight: true
 
-            DashboardPlaceholder {
+            WidgetsPane {
                 anchors.fill: parent
                 visible: surf.currentTab === 0
-                icon: "widgets"
-                label: "Widgets — coming in Phase B"
             }
             DashboardPlaceholder {
                 anchors.fill: parent

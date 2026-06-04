@@ -30,13 +30,13 @@ Scope {
     readonly property int shoulderSize: 20
     readonly property int cornerRadius: 18
     readonly property int maxWidth: 1100          // widest open surface (overview) — also sizes the window
-    readonly property int maxHeight: 320
+    readonly property int maxHeight: 400
     readonly property int expandedMaxWidth: 480   // cap for transient OSDs (volume/brightness/media/notif)
     readonly property int reservedStrip: 40       // top space reserved for the island strip
 
     // Open-state surface sizes — notch body w×h per named surface (Island.openSurface).
     readonly property var surfaceSizes: ({
-            "dashboard": { "w": 1000, "h": 290 },
+            "dashboard": { "w": 1040, "h": 360 },
             "overview":  { "w": 1100, "h": 300 },
             "launcher":  { "w": 560,  "h": 380 },
             "power":     { "w": 320,  "h": 92  },

@@ -42,8 +42,13 @@ Scope {
                 left: IslandStyle.margin
             }
 
-            implicitWidth: rowPills.implicitWidth
+            // Fixed window width (≥ the widest pill layout) so a pill expanding on
+            // hover grows INTO reserved space instead of resizing the window every
+            // frame (that caused the jitter). Masked to the actual pills so the
+            // empty trailing area stays click-through.
+            implicitWidth: Math.max(600, rowPills.implicitWidth)
             implicitHeight: IslandStyle.pillHeight
+            mask: Region { item: rowPills }
 
             component Pill: Rectangle {
                 radius: IslandStyle.radius
@@ -54,7 +59,9 @@ Scope {
 
             RowLayout {
                 id: rowPills
-                anchors.fill: parent
+                anchors.left: parent.left
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
                 spacing: 6
 
                 // ---- 1) search → launcher ----

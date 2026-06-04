@@ -459,6 +459,8 @@ Scope {
                                 return dashboardComp;
                             case "power":
                                 return powerComp;
+                            case "tools":
+                                return toolsComp;
                             default:
                                 return null;
                             }
@@ -466,6 +468,7 @@ Scope {
                     }
                     Component { id: dashboardComp; DashboardSurface { focus: true } }
                     Component { id: powerComp; PowerSurface { focus: true } }
+                    Component { id: toolsComp; ToolsSurface { focus: true } }
                 }
             }
         }

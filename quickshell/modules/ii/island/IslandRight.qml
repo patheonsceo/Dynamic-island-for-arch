@@ -263,7 +263,27 @@ Scope {
                     }
                 }
 
-                // ---- Pill 4: clock (12-hour, small) ----
+                // ---- Pill 4: capture (pencil → tools surface) ----
+                Pill {
+                    id: capturePill
+                    height: parent.height
+                    width: parent.height
+
+                    MaterialSymbol {
+                        anchors.centerIn: parent
+                        text: "ink_pen"
+                        iconSize: 17
+                        fill: 1
+                        color: captureHover.hovered ? IslandStyle.accent : IslandStyle.textColor
+                        Behavior on color { ColorAnimation { duration: 150; easing.type: Easing.OutQuad } }
+                    }
+                    HoverHandler { id: captureHover }
+                    TapHandler {
+                        onTapped: Island.toggle("tools")
+                    }
+                }
+
+                // ---- Pill 5: clock (12-hour, small) ----
                 Pill {
                     id: clockPill
                     height: parent.height

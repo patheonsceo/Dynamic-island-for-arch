@@ -14,9 +14,10 @@ Rectangle {
     color: IslandStyle.pillColor
     border.width: IslandStyle.borderWidth
     border.color: IslandStyle.pillBorder
+    // Constant width (always the expanded size) so the live numbers / hover never
+    // resize the pill (which would recommit the whole window every frame → jitter).
     implicitWidth: content.implicitWidth + IslandStyle.hPadding * 2
     implicitHeight: IslandStyle.pillHeight
-    Behavior on implicitWidth { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
 
     property real rxRate: 0
     property real txRate: 0
@@ -59,9 +60,11 @@ Rectangle {
         anchors.centerIn: parent
         spacing: 6
 
+        // Rates always occupy their slot (fixed width) — only their opacity
+        // changes on hover, so the pill never changes size.
         StyledText {
-            visible: hover.hovered
-            // Fixed width so the live-changing numbers don't jitter the pill.
+            opacity: hover.hovered ? 1 : 0
+            Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
             Layout.preferredWidth: 64
             horizontalAlignment: Text.AlignRight
             text: `↓ ${root.fmt(root.rxRate)}`
@@ -75,7 +78,8 @@ Rectangle {
             color: IslandStyle.textColor
         }
         StyledText {
-            visible: hover.hovered
+            opacity: hover.hovered ? 1 : 0
+            Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
             Layout.preferredWidth: 64
             horizontalAlignment: Text.AlignLeft
             text: `↑ ${root.fmt(root.txRate)}`

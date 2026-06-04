@@ -3,25 +3,25 @@ import qs
 import qs.services
 import qs.modules.common
 import qs.modules.common.widgets
+import qs.modules.common.functions
 import QtQuick
 import QtQuick.Layouts
+import Qt5Compat.GraphicalEffects
 import Quickshell
+import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Widgets
+import Quickshell.Services.Mpris
 
 // Center notch — top-attached, morphing. THE STAR.
 //
-// Shape: hangs from the top-center; square top corners flush with the screen edge,
-// rounded bottom (constant radius), concave RoundCorner shoulders blending into the
-// top edge. Borderless solid fill.
+// Shape: hangs from top-center; square top corners flush with the screen edge,
+// rounded bottom (constant radius), concave RoundCorner shoulders. Borderless fill.
+// Reserves a top strip (exclusiveZone) so maximized windows sit BELOW the islands.
 //
-// State machine (precedence: agent > media > volume/brightness > notification > idle;
-// volume/brightness/notification wired). `open` is a click-toggled full view.
-//   idle      — small empty shape
-//   expanded  — transient OSD content (the active `expandedSource`)
-//   open      — large, click-toggled
-// Goey overshoot morph (cubic-bezier 0.34,1.22,0.64,1). Triggers use the underlying
-// service VALUE/signal, not the flicker-prone OSD flags.
+// State machine (precedence: agent > media > volume/brightness > notification > idle).
+// Transient OSDs auto-hide; media shows only while PLAYING. `open` is click-toggled.
+// Goey overshoot morph (cubic-bezier 0.34,1.22,0.64,1).
 Scope {
     id: root
 
@@ -31,6 +31,55 @@ Scope {
     readonly property int cornerRadius: 18
     readonly property int maxWidth: 480
     readonly property int maxHeight: 300
+    readonly property int reservedStrip: 40   // top space reserved for the island strip
+
+    // Media (shared across monitors). Show only while actively playing.
+    readonly property var activePlayer: MprisController.activePlayer
+    readonly property bool mediaActive: activePlayer?.isPlaying ?? false
+    property list<real> visualizerPoints: []
+
+    // Cover art: download the (often remote / flickery) trackArtUrl to a stable local
+    // cache file so the art doesn't vanish when the player rewrites/clears the URL.
+    readonly property string artUrl: activePlayer?.trackArtUrl ?? ""
+    readonly property string artFilePath: artUrl.length > 0 ? `${Directories.coverArt}/${Qt.md5(artUrl)}` : ""
+    // Persisted local art path. Only cleared on an actual TRACK change — NOT when the
+    // player momentarily rewrites/clears artUrl (which made the art vanish). Set only
+    // once the cache file is confirmed present (exit 0).
+    property string displayedArt: ""
+    readonly property string trackKey: activePlayer?.trackTitle ?? ""
+    onTrackKeyChanged: displayedArt = ""
+    onArtFilePathChanged: {
+        if (artFilePath.length === 0)
+            return; // transient empty URL — keep the current art
+        coverArtDownloader.outFile = artFilePath;
+        coverArtDownloader.targetUrl = artUrl;
+        coverArtDownloader.running = true;
+    }
+    Process {
+        id: coverArtDownloader
+        property string targetUrl: ""
+        property string outFile: ""
+        command: ["bash", "-c", `[ -f '${outFile}' ] || curl -4 -sSL '${targetUrl}' -o '${outFile}'`]
+        onExited: (code, status) => {
+            if (code === 0)
+                root.displayedArt = Qt.resolvedUrl(coverArtDownloader.outFile);
+        }
+    }
+
+    Process {
+        id: cavaProc
+        running: root.mediaActive
+        onRunningChanged: {
+            if (!cavaProc.running)
+                root.visualizerPoints = [];
+        }
+        command: ["cava", "-p", `${FileUtils.trimFileProtocol(Directories.scriptPath)}/cava/raw_output_config.txt`]
+        stdout: SplitParser {
+            onRead: data => {
+                root.visualizerPoints = data.split(";").map(p => parseFloat(p.trim())).filter(p => !isNaN(p));
+            }
+        }
+    }
 
     Variants {
         model: Quickshell.screens
@@ -43,8 +92,9 @@ Scope {
             WlrLayershell.namespace: "quickshell:islandNotch"
             WlrLayershell.layer: WlrLayer.Top
             color: "transparent"
-            exclusionMode: ExclusionMode.Ignore
-            exclusiveZone: 0
+            // Reserve the top strip so windows open below the island row.
+            exclusionMode: ExclusionMode.Normal
+            exclusiveZone: root.reservedStrip
 
             anchors {
                 top: true
@@ -61,11 +111,10 @@ Scope {
 
             // --- state machine ---
             property bool clickedOpen: false
-            // The active transient OSD source: "volume" | "brightness" | "notification" | "".
-            property string expandedSource: ""
-            property string islandState: clickedOpen ? "open" : (expandedSource !== "" ? "expanded" : "idle")
+            property string expandedSource: ""  // transient OSD: volume|brightness|notification|""
+            property string displaySource: expandedSource !== "" ? expandedSource : (root.mediaActive ? "media" : "")
+            property string islandState: clickedOpen ? "open" : (displaySource !== "" ? "expanded" : "idle")
 
-            // One shared auto-hide timer; latest trigger wins.
             Timer {
                 id: hideTimer
                 onTriggered: notchWindow.expandedSource = ""
@@ -76,14 +125,28 @@ Scope {
                 hideTimer.restart();
             }
 
-            // Notification payload (for the notification content).
             property string notifApp: ""
             property string notifSummary: ""
             property string notifIcon: ""
-
             readonly property var brightnessMonitor: Brightness.getMonitorForScreen(notchWindow.screen)
 
-            // --- triggers (off the real service value/signal) ---
+            // Downsampled equalizer bars from the cava points (0..1).
+            readonly property int barCount: 22
+            property var barValues: {
+                const pts = root.visualizerPoints;
+                const n = barCount;
+                let out = [];
+                for (let i = 0; i < n; i++) {
+                    if (pts && pts.length > 0) {
+                        const idx = Math.floor(i * pts.length / n);
+                        out.push(Math.max(0, Math.min(1, (pts[idx] ?? 0) / 1000)));
+                    } else {
+                        out.push(0);
+                    }
+                }
+                return out;
+            }
+
             Connections {
                 target: Audio.sink?.audio ?? null
                 function onVolumeChanged() {
@@ -111,27 +174,27 @@ Scope {
                 }
             }
 
-            // Active content's natural width → drives the expanded morph target.
             property real contentWidth: {
-                switch (expandedSource) {
+                switch (displaySource) {
                 case "volume":
                     return volumeUI.implicitWidth;
                 case "brightness":
                     return brightnessUI.implicitWidth;
                 case "notification":
                     return notifUI.implicitWidth;
+                case "media":
+                    return mediaUI.implicitWidth;
                 default:
                     return 0;
                 }
             }
             property real targetWidth: islandState === "open" ? root.maxWidth
-                : islandState === "expanded" ? Math.min(root.maxWidth, contentWidth + 44)
+                : islandState === "expanded" ? Math.min(root.maxWidth, contentWidth + 36)
                 : 180
             property real targetHeight: islandState === "open" ? root.maxHeight
-                : islandState === "expanded" ? 54
+                : islandState === "expanded" ? (displaySource === "media" ? 40 : 54)
                 : 36
 
-            // Concave shoulders (overlap notch 1px to avoid a seam).
             RoundCorner {
                 corner: RoundCorner.CornerEnum.TopRight
                 color: IslandStyle.pillColor
@@ -180,10 +243,9 @@ Scope {
                     id: volumeUI
                     anchors.centerIn: parent
                     spacing: 9
-                    opacity: notchWindow.expandedSource === "volume" ? 1 : 0
+                    opacity: notchWindow.displaySource === "volume" ? 1 : 0
                     visible: opacity > 0
                     Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
-
                     MaterialSymbol {
                         Layout.alignment: Qt.AlignVCenter
                         iconSize: 20
@@ -212,19 +274,15 @@ Scope {
                     id: brightnessUI
                     anchors.centerIn: parent
                     spacing: 9
-                    opacity: notchWindow.expandedSource === "brightness" ? 1 : 0
+                    opacity: notchWindow.displaySource === "brightness" ? 1 : 0
                     visible: opacity > 0
                     Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
-
                     MaterialSymbol {
                         Layout.alignment: Qt.AlignVCenter
                         iconSize: 20
                         fill: 1
                         color: IslandStyle.textColor
-                        text: {
-                            const b = notchWindow.brightnessMonitor?.brightness ?? 1;
-                            return b < 0.5 ? "brightness_low" : "brightness_high";
-                        }
+                        text: (notchWindow.brightnessMonitor?.brightness ?? 1) < 0.5 ? "brightness_low" : "brightness_high"
                     }
                     OsdBar {
                         value: notchWindow.brightnessMonitor?.brightness ?? 0
@@ -238,10 +296,9 @@ Scope {
                     id: notifUI
                     anchors.centerIn: parent
                     spacing: 9
-                    opacity: notchWindow.expandedSource === "notification" ? 1 : 0
+                    opacity: notchWindow.displaySource === "notification" ? 1 : 0
                     visible: opacity > 0
                     Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
-
                     Loader {
                         Layout.alignment: Qt.AlignVCenter
                         active: notchWindow.notifIcon !== ""
@@ -279,11 +336,91 @@ Scope {
                         }
                     }
                 }
+
+                // ---- media: art · equalizer bars · play/pause (minimal, reference-style) ----
+                RowLayout {
+                    id: mediaUI
+                    anchors.centerIn: parent
+                    spacing: 10
+                    opacity: notchWindow.displaySource === "media" ? 1 : 0
+                    visible: opacity > 0
+                    Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
+
+                    Rectangle {
+                        Layout.alignment: Qt.AlignVCenter
+                        implicitWidth: 26
+                        implicitHeight: 26
+                        radius: 7
+                        color: Qt.rgba(1, 1, 1, 0.08)
+                        StyledImage {
+                            id: artImg
+                            anchors.fill: parent
+                            source: root.displayedArt
+                            fillMode: Image.PreserveAspectCrop
+                            visible: root.displayedArt !== "" && status === Image.Ready
+                            layer.enabled: true
+                            layer.effect: OpacityMask {
+                                maskSource: Rectangle {
+                                    width: artImg.width
+                                    height: artImg.height
+                                    radius: 7
+                                }
+                            }
+                        }
+                        MaterialSymbol {
+                            anchors.centerIn: parent
+                            visible: !artImg.visible
+                            text: "music_note"
+                            iconSize: 16
+                            color: IslandStyle.textColor
+                        }
+                    }
+
+                    // Equalizer bars
+                    Item {
+                        Layout.alignment: Qt.AlignVCenter
+                        implicitWidth: 112
+                        implicitHeight: 24
+                        Row {
+                            anchors.centerIn: parent
+                            spacing: 2
+                            Repeater {
+                                model: notchWindow.barCount
+                                delegate: Item {
+                                    id: barCell
+                                    required property int index
+                                    width: 3
+                                    height: 24
+                                    Rectangle {
+                                        anchors.centerIn: parent
+                                        width: 3
+                                        radius: 1.5
+                                        color: IslandStyle.accent
+                                        height: Math.max(3, (notchWindow.barValues[barCell.index] ?? 0) * 22)
+                                        Behavior on height { NumberAnimation { duration: 90; easing.type: Easing.OutQuad } }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    MaterialSymbol {
+                        Layout.alignment: Qt.AlignVCenter
+                        iconSize: 24
+                        fill: 1
+                        color: IslandStyle.textColor
+                        text: root.mediaActive ? "pause" : "play_arrow"
+                        MouseArea {
+                            anchors.fill: parent
+                            onClicked: root.activePlayer?.togglePlaying()
+                        }
+                    }
+                }
             }
         }
     }
 
-    // Small reusable OSD bits (level bar + percent label).
+    // Small reusable OSD bits.
     component OsdBar: Rectangle {
         id: bar
         property real value: 0

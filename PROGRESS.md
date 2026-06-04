@@ -7,33 +7,63 @@ lives in `NOTES.md`.
 
 ## Current phase & status
 
-**Phase 2 — Populate islands: DONE & VERIFIED (2026-06-04). Next: Phase 3 (notch).**
-Both islands complete and user-approved. Left: custom workspace indicator + compact
-title. Right: stats(CPU/RAM/SWAP/battery rings, hover→combined tooltip) · tray ·
-perf+settings-gear · clock(12h) · power. Right sidebar slides in from the right edge.
-All styled via the shared `IslandStyle` singleton.
+**Phases 0–5 DONE & user-approved (2026-06-04/05). Next: Phase 6 — agent bridge, plus
+the notch `open` (fully-expanded) state content.**
 
-Phases 0 (orient) & 1 (skeleton) done & verified earlier.
+Three floating islands on every monitor, no bar:
+- **Left** (`IslandLeft.qml`): custom `IslandWorkspaces` (expanding-capsule dots) +
+  compact active-window title. Click → left sidebar; right-click ws → overview.
+- **Notch** (`IslandNotch.qml`): top-attached morphing notch (THE STAR). idle ·
+  expanded · open, goey morph. Wired: volume / brightness / notification OSDs + **media
+  (album art + cava equalizer bars + play/pause)**. `open` state shape works but has NO
+  content yet — that's next.
+- **Right** (`IslandRight.qml`): stats rings (CPU/RAM/SWAP/battery, hover→combined
+  tooltip) · tray (hidden when empty) · perf-toggle + settings-gear · 12h clock ·
+  circular power. Right sidebar slides in from the right edge.
 
-- Phase 0 (orient) complete and committed; nested dev window confirmed by user.
-- Disabled the full-width `Bar` PanelLoader; added `IslandLeft` / `IslandNotch` /
-  `IslandRight` PanelLoaders to `IllogicalImpulseFamily.qml`.
-- Built three components in `modules/ii/island/`, each a `Scope { Variants { model:
-  Quickshell.screens; PanelWindow {…} } }` → renders on every monitor. Transparent
-  window bg, rounded themed pill (`colLayer0` + `colLayer0Border`,
-  `rounding.full`), floating via layer-shell `margins` (8 px). Left anchored
-  top-left, Notch top-center (top-only anchor → auto-centered), Right top-right.
-- Static `"left"` / `"notch"` / `"right"` placeholder labels for now.
-- Removed superseded `Island.qml`. Kept `IslandContent.qml` as the Phase-3 notch sketch.
+All styled via the `IslandStyle` singleton. `IslandPopup` = below-anchored hover
+tooltip (Loader + keep-alive + Component content). The notch reserves a 40px top
+strip (`exclusiveZone`) so maximized windows open below the island row.
 
-**What works (expected):** three floating rounded pills at top-left / center / right,
-wallpaper through the gaps, no full-width bar — on every monitor.
-**What doesn't yet:** pills are static placeholders (no workspaces/clock/metrics);
-notch doesn't morph. That's Phases 2–3.
+**NEXT (per user):** build the notch **`open` / fully-expanded** state (real content),
+then **Phase 6 agent bridge** (live Claude Code status in the notch + permission). The
+user wants to keep iterating on the notch's expanded/open content.
 
 ---
 
 ## Done (newest first)
+
+- **2026-06-05 — Phase 5 media + cava visualizer (notch).**
+  - One shared cava `Process` at the `Scope` root runs `cava -p scripts/cava/
+    raw_output_config.txt` (50 bars, `;`-sep stdout) only while `mediaActive` →
+    `visualizerPoints`. Downsampled to 22 **equalizer bars** (center-anchored
+    Rectangles) — NOT the `WaveVisualizer` (user wanted bars).
+  - Minimal media UI (reference-style): small album art · bars · play/pause. NO
+    title/artist. Compact (~40px). `MprisController.activePlayer`.
+  - `mediaActive = isPlaying` → pausing/no-playback collapses back to idle (user choice).
+  - **Album-art flicker fix:** binding straight to `trackArtUrl` made art vanish when the
+    player rewrote/cleared the URL. Fix = download to a stable local cache
+    (`Directories.coverArt/Qt.md5(url)` via a curl `Process`) AND only clear `displayedArt`
+    on an actual track change (`trackKey`=trackTitle), set only on curl exit 0. Persists.
+- **2026-06-04 — Phase 4 notch brightness + notification.** Generalized to one
+  `expandedSource` + shared hide-timer; reusable `OsdBar`/`OsdPercent`. NOTE: brightness
+  only fires when changed THROUGH the shell service (`Brightness.brightnessChanged`;
+  test via `qs -c openagentisland ipc call brightness increment`), and notifications
+  CANNOT be tested in the nested session — the real `ii` already owns the
+  `org.freedesktop.Notifications` D-Bus name, so the nested shell gets none. Both wired
+  correctly; verify on real desktop.
+- **2026-06-04 — Phase 3 notch idle + volume + the morphing framework.**
+  - Top-attached notch: square top corners flush with screen edge, rounded bottom,
+    concave `RoundCorner` shoulders (left=TopRight, right=TopLeft, overlap −1px) blending
+    into the top edge. Borderless (a border drew seam lines). Window fixed at max size +
+    `mask: Region{item:notch}` (click-through elsewhere) so size animates smoothly
+    Qt-side (no janky per-frame compositor resize).
+  - Goey morph: `easing.bezierCurve` from the reference's notch.css
+    (`cubic-bezier(0.175,0.885,0.32,1.275)`), softened to **[0.34,1.22,0.64,1,1,1]**
+    (1.275 made the open→idle shrink collapse violently; user still wanted bounce).
+  - **Constant 18px bottom radius** (≤ idle-height/2 so Qt never clamps it) — animating
+    the radius read as corners "rounding in", which the user rejected. idle height = 36.
+  - Volume triggers off `Audio.sink.audio` VALUE (not `GlobalStates.osdVolumeOpen`).
 
 - **2026-06-04 — Phase 2 RIGHT island + sidebar slide-in.**
   - `IslandRight.qml`: pills = stats (CPU/RAM/SWAP/battery as `CircularProgress` rings,
@@ -101,13 +131,19 @@ notch doesn't morph. That's Phases 2–3.
 
 ## Next
 
-1. **User action:** launch the nested dev window and confirm `openagentisland` renders:
-   `WLR_BACKENDS=wayland WLR_NO_HARDWARE_CURSORS=1 HYPRLAND_INSTANCE_SIGNATURE= Hyprland --config ~/.config/hypr-nested/hyprland.conf`
-2. **Phase 1 — Floating skeleton:** disable the `Bar` PanelLoader; build
-   `IslandLeft` / `IslandNotch` / `IslandRight` as three transparent rounded
-   `PanelWindow`s, each in `Variants` over `Quickshell.screens`, anchored
-   top-left/center/right with margins; register their PanelLoaders. Verify: three
-   floating pills, wallpaper through the gaps, no bar — on every monitor.
+1. **Notch `open` (fully-expanded) state content** — the `open` state (click-toggled,
+   480×300) currently has the shape/morph but NO content. Design + build what it shows
+   (likely the agent view + media controls + a dashboard-ish surface). User wants to
+   iterate on the expanded/open notch.
+2. **Phase 6 — agent bridge (status only), safety-first.** Build `bridge/` (NOT created
+   yet): Unix socket at `$XDG_RUNTIME_DIR/openagentisland.sock`, Claude Code hooks →
+   socket, a listener → notch `agent` state. Build the timeout/failure-safety FIRST so a
+   down/broken island can NEVER hang real Claude Code. Confirm `Quickshell.Io` 0.2.1
+   socket support (or external daemon). See NOTES.md §4.
+3. Phase 7 permission round-trip, Phase 8 multi-session + polish.
+
+Dev: launch nested window with
+`WLR_BACKENDS=wayland WLR_NO_HARDWARE_CURSORS=1 HYPRLAND_INSTANCE_SIGNATURE= Hyprland --config ~/.config/hypr-nested/hyprland.conf`
 
 ---
 
@@ -123,6 +159,34 @@ notch doesn't morph. That's Phases 2–3.
 ---
 
 ## Gotchas hit
+
+- **⚠ NESTED MONITOR NAME VARIES PER SESSION → broke scaling.** The nested output is
+  sometimes `WL-1`, sometimes `WAYLAND-1` (changes after a laptop reboot). A
+  `monitor=WL-1,...` line silently stops matching → nested falls back to scale 1.5 +
+  letterboxed wallpaper. FIX (in `~/.config/hypr-nested/hyprland.conf`): use a wildcard
+  `monitor=,preferred,auto,1.0` (empty name = all outputs). Monitor changes need a
+  nested-session restart. Check actual name/scale with
+  `HYPRLAND_INSTANCE_SIGNATURE=<sig> hyprctl monitors` (find the nested instance under
+  `$XDG_RUNTIME_DIR/hypr/`).
+- **ConflictKiller "Kill conflicting programs? kded6" dialog** appears in the nested
+  session (`ConflictKiller.load()` in shell.qml). Click **No** — `kded6` is shared with
+  the real desktop; killing it would break the real session's KDE integration.
+- **Brace-balance is easy to misdiagnose:** `${...}` template literals contain `{`/`}`,
+  so `grep -c '{'` lies. Use a string/comment/template-aware counter (a small python
+  walker). Also, the reload race shows CONTRADICTORY stale errors ("Expected }" then
+  "Unexpected }") from different in-flight file states — trust the LAST
+  `Configuration Loaded` line, not transient errors.
+- **`exclusiveZone` for "windows below the islands":** set
+  `exclusionMode: ExclusionMode.Normal; exclusiveZone: 40` on the (top-anchored) notch
+  to reserve the top strip so maximized windows don't get covered. Wallpaper (Background,
+  layer Bottom, `ExclusionMode.Ignore`) still fills the whole screen.
+- **Notifications can't be tested in the nested session** (real `ii` owns the D-Bus
+  notification server). **Brightness** only triggers when changed through the shell
+  service. Verify both on the real desktop. **Volume/media ARE testable** (shared
+  PipeWire / MPRIS).
+- **WaveVisualizer / any self-anchoring widget inside a Layout** → "anchors on an item
+  managed by a layout" warning; wrap it in a plain `Item` with `Layout.preferredWidth/
+  Height` and let the widget `anchors.fill: parent`.
 
 - **⚠ HOT-RELOAD DOESN'T FIRE FROM CLAUDE'S FILE WRITES (critical, every phase).**
   Claude's Write/Edit tools save *atomically* (write temp + rename → new inode), and

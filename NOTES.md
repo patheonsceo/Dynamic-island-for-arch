@@ -171,6 +171,56 @@ In `panelFamilies/IllogicalImpulseFamily.qml`: comment the full-width `Bar`
 PanelLoader; add three island PanelLoaders. Keep ALL other panels (sidebars,
 overview, lock, notifications, dock, screenCorners, polkit, etc.).
 
+### 2.5 AS-BUILT details (Phases 1–5, user-approved)
+
+**Shared style — `IslandStyle.qml` (singleton, `pragma Singleton` + `Singleton{}`, no
+qmldir needed):** `margin 4`, `pillHeight 32`, `hPadding 10`, `radius full`,
+`pillColor "#0B0B0E"` (solid space-black — NOT translucent `colLayer0`), `textColor
+"#FFFFFF"`, `accent "#8AB4F8"`, `subtextColor`, `inactiveOpacity 0.45`. Every island
+uses it.
+
+**`IslandWorkspaces.qml` (left):** custom (NOT end-4 `Workspaces` — fixed slots can't do
+the reference's uniform-gap look). A `Row` of dots; the CURRENT workspace is a capsule
+the same height as the dots that EXPANDS and pushes neighbours apart (uniform gaps +
+fluid). Used=white, unused=faint, current=blue. Dispatch = standard `workspace N` /
+`workspace e±1` (end-4's `hl.dsp.focus` is INVALID in vanilla Hyprland).
+
+**`IslandPopup.qml` (right-island tooltips):** the bar's `StyledPopup` is hard-coded to
+the full-width bar → lands top-left on our island. So: a `PopupWindow` anchored BELOW
+the hovered item (`anchor.window/item/edges:Bottom/gravity:Bottom`). Loader + keep-alive
+timer (NOT always-mapped — an always-mapped PopupWindow triggered a Wayland popup
+protocol error that CRASHED qs). Content passed as a `Component` (instantiated fresh
+inside; reparenting a shared `Item` rendered empty boxes). Drive `shouldShow` from a
+`HoverHandler` (composes over MouseAreas; the battery's tiny target + a competing base
+MouseArea made plain MouseArea hover unreliable). Slide-in-from-right + fade.
+
+**`IslandNotch.qml` (THE STAR) — top-attached morphing notch:**
+- Hangs from top-center: square top corners flush with the screen edge, **rounded
+  bottom**, concave `RoundCorner` shoulders (left=`TopRight`, right=`TopLeft`,
+  `anchors.*Margin:-1` overlap) that blend it into the top edge. **Borderless** (a
+  border drew seam lines).
+- Window fixed at MAX size (`maxWidth+2*shoulder` × `maxHeight`); `mask: Region{item:
+  notch}` so input passes through everywhere but the notch and the inner notch
+  Rectangle animates size smoothly Qt-side (no janky per-frame compositor resize).
+- **States:** `idle` (180×36 empty) · `expanded` (fits the active content) · `open`
+  (480×300, click-toggled, NO content yet). `targetWidth`/`targetHeight`/`displaySource`
+  computed by precedence.
+- **Goey morph:** `Behavior on width/height { NumberAnimation { easing.bezierCurve:
+  [0.34,1.22,0.64,1,1,1] } }` (reference was 1.275 → too violent on the shrink).
+- **Constant 18px bottom radius** (≤ idle-height/2 so Qt never clamps) — animating it
+  read as corners "rounding in", rejected. NO radius Behavior.
+- **Reserves a 40px top strip** (`exclusionMode: Normal; exclusiveZone: 40`) so
+  maximized windows open below the islands.
+- **Sources & precedence** (computed `displaySource`): transient OSDs (volume /
+  brightness / notification, one `expandedSource` + shared hide-timer, auto-hide) win
+  over persistent **media**; `agent` (Phase 6) will be highest. Triggers use the service
+  VALUE/signal, never the flicker-prone OSD flags.
+- **Media:** shared cava `Process` at the `Scope` root → `visualizerPoints`, downsampled
+  to 22 center-anchored **equalizer bars**. Minimal UI = art · bars · play/pause (no
+  title). `mediaActive = isPlaying`. Album art downloaded to a stable local cache
+  (`Directories.coverArt/Qt.md5(url)`) and only reset on track change (see PROGRESS
+  gotcha — fixes the mid-song art vanish).
+
 ---
 
 ## 3. Quickshell / end-4 facts in use

@@ -7,31 +7,66 @@ lives in `NOTES.md`.
 
 ## Current phase & status
 
-**Phases 0–5 DONE & user-approved (2026-06-04/05). Next: Phase 6 — agent bridge, plus
-the notch `open` (fully-expanded) state content.**
+**Phases 0–5 DONE. Expansion phases A–H DONE (2026-06-05) — code-complete &
+compiling clean; awaiting user visual test in the nested window. Next: Phase 6 —
+agent bridge.**
 
-Three floating islands on every monitor, no bar:
-- **Left** (`IslandLeft.qml`): custom `IslandWorkspaces` (expanding-capsule dots) +
-  compact active-window title. Click → left sidebar; right-click ws → overview.
-- **Notch** (`IslandNotch.qml`): top-attached morphing notch (THE STAR). idle ·
-  expanded · open, goey morph. Wired: volume / brightness / notification OSDs + **media
-  (album art + cava equalizer bars + play/pause)**. `open` state shape works but has NO
-  content yet — that's next.
-- **Right** (`IslandRight.qml`): stats rings (CPU/RAM/SWAP/battery, hover→combined
-  tooltip) · tray (hidden when empty) · perf-toggle + settings-gear · 12h clock ·
-  circular power. Right sidebar slides in from the right edge.
+The notch `open` state is now a **surface host** (see NOTES.md): an `Island`
+singleton holds `openSurface` and side-island pills command the centre notch to
+open one of 5 surfaces — `dashboard` (Widgets/Kanban/Coming-soon tabs), `power`,
+`tools`, `launcher`, `overview`. Built in ROADMAP.md phases A–H:
+- **A** surface host + dashboard tab shell (Ctrl+Tab nav, per-surface sizes).
+- **B** Widgets tab: media card, Wi-Fi/BT/Night/Caffeine toggles, vol+mic
+  sliders, calendar, notifications, power-profile selector, live CPU/RAM/Swap bars.
+- **C** Kanban tab (3 cols, JSON-persisted, inline edit, drag between columns).
+- **D** Power surface (Lock/Night/Logout/Reboot/Shutdown, kbd+mouse). USECASE 1.
+- **E** Tools surface (region/full/window screenshot via hyprshot, record via
+  wf-recorder, hyprpicker). USECASE 2.
+- **F** Launcher surface (AppSearch fuzzy apps+settings, kbd nav). USECASE 4.
+- **G** Overview surface (live WS 1-10 icon grid, click focus / RMB close / drag
+  to move via vanilla Hyprland dispatchers). USECASE 4.
+- **H** Left island rebuilt to 5 pills (search · workspaces · weather · overview ·
+  network), title dropped; weather pill (wttr.in °C) + network pill (/proc/net/dev
+  hover throughput). Pill bg → pure pitch black. Click-absorber so open surfaces
+  don't close on inner clicks (close via Esc / re-click trigger pill).
 
-All styled via the `IslandStyle` singleton. `IslandPopup` = below-anchored hover
-tooltip (Loader + keep-alive + Component content). The notch reserves a 40px top
-strip (`exclusiveZone`) so maximized windows open below the island row.
+Right island: power pill → `Island.toggle("power")`; new pencil pill →
+`Island.toggle("tools")`.
 
-**NEXT (per user):** build the notch **`open` / fully-expanded** state (real content),
-then **Phase 6 agent bridge** (live Claude Code status in the notch + permission). The
-user wants to keep iterating on the notch's expanded/open content.
+All styled via `IslandStyle`. Notch reserves a 40px top strip (`exclusiveZone`).
+
+**NEXT:** user tests A–H visually, then **Phase 6 agent bridge** (live Claude Code
+status in the notch + permission round-trip).
 
 ---
 
 ## Done (newest first)
+
+- **2026-06-05 — Expansion phases A–H (notch surfaces + side islands).** Built the
+  whole reference feature set ahead of the agent work; each phase compiled clean
+  (verified via reload log + force-opening each surface) and committed separately
+  (commits Phase A `45c8fe8` → Phase H). New files under `modules/ii/island/`:
+  `Island` (bus singleton), `DashboardSurface`/`DashboardPlaceholder`,
+  `WidgetsPane`/`WidgetCalendar`, `KanbanStore`/`KanbanPane`, `PowerSurface`,
+  `ToolsSurface`, `LauncherSurface`, `OverviewSurface`, `IslandWeatherPill`,
+  `IslandNetworkPill`. `IslandNotch` open state → Loader surface-host; `IslandLeft`
+  rebuilt to 5 pills (title dropped); `IslandRight` gained pencil pill + power→surface.
+  Gotchas hit:
+  - **New-file reload race:** adding a new surface file + editing IslandNotch to
+    reference it in the SAME reload nudge yields a transient `X is not a type`
+    "Failed to load" pass, immediately followed by a successful "Configuration
+    Loaded". The `Component { X {} }` wrapper forces X to be a valid type for the
+    config to load at all, so a trailing `Configuration Loaded` proves it resolved
+    — trust the LAST line; the interleaved error is stale (its line:col often no
+    longer even points at the Component after later edits).
+  - **PowerProfilesDaemon not running** on this box → mode selector shows default
+    and `powerprofilesctl set` is a harmless no-op (env, not a bug).
+  - **end-4 `hl.dsp.*` dispatchers are plugin-only** (invalid in vanilla Hyprland)
+    — OverviewSurface uses standard `focuswindow`/`closewindow`/
+    `movetoworkspacesilent`/`workspace` instead.
+  - **Cross-cell/column drag** (kanban + overview): avoided Repeater-delegate
+    reparenting; instead arm after 8px, show a floating proxy, and on release map
+    cursor position → target cell/column. Robust without z-order fighting.
 
 - **2026-06-05 — Phase 5 media + cava visualizer (notch).**
   - One shared cava `Process` at the `Scope` root runs `cava -p scripts/cava/

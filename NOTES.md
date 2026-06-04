@@ -376,3 +376,37 @@ delta / elapsed, poll 1000ms; format B/s · KB/s · MB/s; Revealer shows speed o
 hover; wifi strength icon. (Quickshell equiv: read `/proc/net/dev`.)
 
 See ROADMAP.md for the phased build plan (A–H) that consumes these.
+
+---
+
+## 4. OPEN-STATE SURFACE HOST (expansion A–H, as-built)
+
+The notch `open` state is a **named-surface host** (mirrors the reference's
+`notch.stack` + `open_notch(name)`).
+
+- **`Island` singleton** (`modules/ii/island/Island.qml`): `property string
+  openSurface` (`"" | dashboard | power | tools | launcher | overview`) +
+  `open()/close()/toggle()`. Side-island pills (separate PanelWindows) call it to
+  drive the centre notch.
+- **`IslandNotch`**: `islandState = openSurface!=="" ? "open" : (transient OSD ?
+  "expanded" : "idle")`. Per-surface sizes in `surfaceSizes`; window sized to the
+  widest (`maxWidth 1100 × maxHeight 400`), notch masked so only its body is
+  interactive. Open content = a `FocusScope` "surfaceHost" with a click-absorber
+  MouseArea + a `Loader` switching `sourceComponent` on `openSurface`
+  (`Component { DashboardSurface{} }` etc.). `keyboardFocus: OnDemand` while open
+  → Esc closes; transient OSDs gated to `expanded` so they don't overlap surfaces.
+- **Surfaces** (all `FocusScope`, same dir, auto-resolved by filename):
+  - `DashboardSurface` → tab bar (Widgets/Kanban/Coming-soon) hosting `WidgetsPane`
+    (`WidgetCalendar` + inline toggles/sliders/media/notifs/mode/stat-bars) and
+    `KanbanPane` (+ `KanbanStore` singleton, JSON at `<state>/user/kanban.json`).
+  - `PowerSurface`, `ToolsSurface`, `LauncherSurface`, `OverviewSurface`.
+- **Close paths:** Esc (keyboard focus), re-clicking the originating side pill
+  (`Island.toggle`), or taking an action. Clicks inside an open surface are
+  absorbed (no accidental close); the notch background only OPENS (dashboard) from
+  idle.
+- **Services reused:** Audio (sink+source), Network, BluetoothStatus +
+  `Bluetooth.defaultAdapter`, Hyprsunset, Idle (caffeine), ResourceUsage,
+  Notifications, DateTime, MprisController, AppSearch/DesktopEntries, HyprlandData
+  + `Hyprland.dispatch`. Weather/network pills self-fetch (wttr.in / /proc/net/dev).
+
+See ROADMAP.md for the phase→task breakdown and PROGRESS.md for gotchas.

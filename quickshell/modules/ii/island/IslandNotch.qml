@@ -249,14 +249,12 @@ Scope {
 
                 MouseArea {
                     anchors.fill: parent
-                    // Click the notch body: open the dashboard from idle/OSD, or close
-                    // whatever surface is up (surface content sits on top with its own
-                    // handlers; this catches clicks on the surrounding padding).
+                    // Click the notch body from idle/OSD → open the dashboard. When a
+                    // surface is open, surfaceHost's absorber catches clicks (no
+                    // accidental close); close via Esc or re-clicking the trigger pill.
                     onClicked: {
                         if (Island.openSurface === "")
                             Island.open("dashboard");
-                        else
-                            Island.close();
                     }
                 }
 
@@ -447,6 +445,13 @@ Scope {
                     focus: visible
                     opacity: visible ? 1 : 0
                     Behavior on opacity { NumberAnimation { duration: 160; easing.type: Easing.OutQuad } }
+
+                    // Absorb clicks on empty surface padding so they don't fall through
+                    // to the notch background (which would close the surface).
+                    MouseArea {
+                        anchors.fill: parent
+                        acceptedButtons: Qt.AllButtons
+                    }
 
                     Loader {
                         id: surfaceLoader

@@ -3,17 +3,19 @@ import qs
 import qs.services
 import qs.modules.common
 import qs.modules.common.widgets
-import qs.modules.ii.bar
 import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Wayland
-import Quickshell.Hyprland
 
-// Left floating island — top-left.
-// Custom workspace indicator + active window title (ActiveWindow, compact).
-// Left-click pill → toggle left sidebar. Right-click workspaces → overview.
-// Shared geometry/colors come from IslandStyle (see notch & right islands).
+// Left floating island — top-left. Five pills (reference layout, no title):
+//   1) search    → launcher surface
+//   2) workspaces → live indicator (scroll switch, right-click overview;
+//                   background click → left sidebar)
+//   3) weather   → emoji + °C
+//   4) overview  → workspace overview surface
+//   5) network   → status icon, hover reveals throughput
+// Shared geometry/colors from IslandStyle.
 Scope {
     id: root
 
@@ -40,51 +42,91 @@ Scope {
                 left: IslandStyle.margin
             }
 
-            implicitWidth: pill.implicitWidth
+            implicitWidth: rowPills.implicitWidth
             implicitHeight: IslandStyle.pillHeight
 
-            Rectangle {
-                id: pill
-                anchors.fill: parent
+            component Pill: Rectangle {
                 radius: IslandStyle.radius
                 color: IslandStyle.pillColor
                 border.width: IslandStyle.borderWidth
                 border.color: IslandStyle.pillBorder
+            }
 
-                implicitWidth: contentRow.implicitWidth + IslandStyle.hPadding * 2
+            RowLayout {
+                id: rowPills
+                anchors.fill: parent
+                spacing: 6
 
-                // Base layer: left-click anywhere on the pill toggles the left sidebar.
-                // Workspace buttons / title sit above and handle their own clicks.
-                MouseArea {
-                    anchors.fill: parent
-                    acceptedButtons: Qt.LeftButton
-                    onPressed: GlobalStates.sidebarLeftOpen = !GlobalStates.sidebarLeftOpen
+                // ---- 1) search → launcher ----
+                Pill {
+                    Layout.fillHeight: true
+                    Layout.preferredWidth: IslandStyle.pillHeight
+                    MaterialSymbol {
+                        anchors.centerIn: parent
+                        text: "search"
+                        iconSize: 18
+                        fill: 1
+                        color: searchHover.hovered ? IslandStyle.accent : IslandStyle.textColor
+                        Behavior on color { ColorAnimation { duration: 150; easing.type: Easing.OutQuad } }
+                    }
+                    HoverHandler { id: searchHover }
+                    TapHandler { onTapped: Island.toggle("launcher") }
                 }
 
-                RowLayout {
-                    id: contentRow
-                    anchors.fill: parent
-                    anchors.leftMargin: IslandStyle.hPadding
-                    anchors.rightMargin: IslandStyle.hPadding
-                    spacing: 8
+                // ---- 2) workspaces ----
+                Pill {
+                    Layout.fillHeight: true
+                    Layout.preferredWidth: wsRow.implicitWidth + IslandStyle.hPadding * 2
 
-                    // Custom reference-style indicator: uniform-spaced dots + expanding
-                    // current-workspace capsule. Scroll = switch, right-click = overview.
-                    IslandWorkspaces {
-                        Layout.fillHeight: true
-                        Layout.alignment: Qt.AlignVCenter
-                        usedColor: IslandStyle.textColor   // used (not current) → white
-                        activeColor: IslandStyle.accent    // current → blue-tinted
-                        emptyOpacity: IslandStyle.inactiveOpacity
-                        capsuleWidth: 32                   // current capsule a bit longer
+                    // background click → left sidebar (dots handle their own clicks)
+                    MouseArea {
+                        anchors.fill: parent
+                        acceptedButtons: Qt.LeftButton
+                        onPressed: GlobalStates.sidebarLeftOpen = !GlobalStates.sidebarLeftOpen
                     }
 
-                    ActiveWindow {
-                        compact: true
-                        Layout.fillHeight: true
-                        Layout.maximumWidth: 160
-                        Layout.alignment: Qt.AlignVCenter
+                    Item {
+                        id: wsRow
+                        anchors.fill: parent
+                        anchors.leftMargin: IslandStyle.hPadding
+                        anchors.rightMargin: IslandStyle.hPadding
+                        implicitWidth: ws.implicitWidth
+                        IslandWorkspaces {
+                            id: ws
+                            anchors.verticalCenter: parent.verticalCenter
+                            height: parent.height
+                            usedColor: IslandStyle.textColor
+                            activeColor: IslandStyle.accent
+                            emptyOpacity: IslandStyle.inactiveOpacity
+                            capsuleWidth: 32
+                        }
                     }
+                }
+
+                // ---- 3) weather ----
+                IslandWeatherPill {
+                    Layout.fillHeight: true
+                }
+
+                // ---- 4) overview ----
+                Pill {
+                    Layout.fillHeight: true
+                    Layout.preferredWidth: IslandStyle.pillHeight
+                    MaterialSymbol {
+                        anchors.centerIn: parent
+                        text: "grid_view"
+                        iconSize: 17
+                        fill: 1
+                        color: overviewHover.hovered ? IslandStyle.accent : IslandStyle.textColor
+                        Behavior on color { ColorAnimation { duration: 150; easing.type: Easing.OutQuad } }
+                    }
+                    HoverHandler { id: overviewHover }
+                    TapHandler { onTapped: Island.toggle("overview") }
+                }
+
+                // ---- 5) network ----
+                IslandNetworkPill {
+                    Layout.fillHeight: true
                 }
             }
         }

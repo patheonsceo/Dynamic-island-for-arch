@@ -294,7 +294,7 @@ Scope {
                     }
                     HoverHandler { id: powerHover }
                     TapHandler {
-                        onTapped: GlobalStates.sessionOpen = true
+                        onTapped: Island.toggle("power")
                     }
                 }
             }

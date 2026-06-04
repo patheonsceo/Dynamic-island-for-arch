@@ -457,12 +457,15 @@ Scope {
                             switch (Island.openSurface) {
                             case "dashboard":
                                 return dashboardComp;
+                            case "power":
+                                return powerComp;
                             default:
                                 return null;
                             }
                         }
                     }
                     Component { id: dashboardComp; DashboardSurface { focus: true } }
+                    Component { id: powerComp; PowerSurface { focus: true } }
                 }
             }
         }

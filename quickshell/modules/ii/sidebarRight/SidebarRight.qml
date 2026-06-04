@@ -13,7 +13,8 @@ Scope {
 
     PanelWindow {
         id: panelWindow
-        visible: GlobalStates.sidebarRightOpen
+        // Keep mapped while the slide-out animation is still running.
+        visible: GlobalStates.sidebarRightOpen || sidebarSlide.x < root.sidebarWidth
 
         function hide() {
             GlobalStates.sidebarRightOpen = false;
@@ -29,6 +30,11 @@ Scope {
             top: true
             right: true
             bottom: true
+        }
+        // Open BELOW the floating islands (island strip ≈ 4px margin + 32px pill)
+        // so the right island stays clickable to toggle the sidebar closed.
+        margins {
+            top: 44
         }
 
         onVisibleChanged: {
@@ -47,7 +53,7 @@ Scope {
 
         Loader {
             id: sidebarContentLoader
-            active: GlobalStates.sidebarRightOpen || Config?.options.sidebar.keepRightSidebarLoaded
+            active: GlobalStates.sidebarRightOpen || Config?.options.sidebar.keepRightSidebarLoaded || sidebarSlide.x < root.sidebarWidth
             anchors {
                 fill: parent
                 margins: Appearance.sizes.hyprlandGapsOut
@@ -55,6 +61,15 @@ Scope {
             }
             width: sidebarWidth - Appearance.sizes.hyprlandGapsOut - Appearance.sizes.elevationMargin
             height: parent.height - Appearance.sizes.hyprlandGapsOut * 2
+
+            // Slide in from the right screen edge (and back out on close).
+            transform: Translate {
+                id: sidebarSlide
+                x: GlobalStates.sidebarRightOpen ? 0 : root.sidebarWidth
+                Behavior on x {
+                    NumberAnimation { duration: 330; easing.type: Easing.OutCubic }
+                }
+            }
 
             focus: GlobalStates.sidebarRightOpen
             Keys.onPressed: event => {

@@ -7,13 +7,13 @@ lives in `NOTES.md`.
 
 ## Current phase & status
 
-**Phase 2 — Populate islands: LEFT DONE & VERIFIED (2026-06-03). Right island next.**
-Left island: custom workspace indicator + compact active-window title, styled via a
-shared `IslandStyle` singleton (space-black solid pill, white/blue accents, 4px
-margin, 32px height). Now building the right island (resources · clock · battery ·
-tray · wifi/bt) reusing end-4 widgets + the same `IslandStyle`.
+**Phase 2 — Populate islands: DONE & VERIFIED (2026-06-04). Next: Phase 3 (notch).**
+Both islands complete and user-approved. Left: custom workspace indicator + compact
+title. Right: stats(CPU/RAM/SWAP/battery rings, hover→combined tooltip) · tray ·
+perf+settings-gear · clock(12h) · power. Right sidebar slides in from the right edge.
+All styled via the shared `IslandStyle` singleton.
 
-Phase 1 (skeleton) done & verified earlier.
+Phases 0 (orient) & 1 (skeleton) done & verified earlier.
 
 - Phase 0 (orient) complete and committed; nested dev window confirmed by user.
 - Disabled the full-width `Bar` PanelLoader; added `IslandLeft` / `IslandNotch` /
@@ -34,6 +34,25 @@ notch doesn't morph. That's Phases 2–3.
 ---
 
 ## Done (newest first)
+
+- **2026-06-04 — Phase 2 RIGHT island + sidebar slide-in.**
+  - `IslandRight.qml`: pills = stats (CPU/RAM/SWAP/battery as `CircularProgress` rings,
+    hover → combined RAM/Swap/CPU/Battery tooltip) · tray (hidden when empty) ·
+    perf-toggle + settings-gear · clock (12h `h:mm AP`, small) · circular power button.
+    Smooth `Behavior on color` hovers on gear/perf/power.
+  - `IslandPopup.qml` (new): hover tooltip anchored BELOW via `PopupWindow` (the bar's
+    `StyledPopup` is hard-coded for the full-width bar → lands top-left on our island).
+    Loader-based + keep-alive timer = crash-safe (an always-mapped PopupWindow triggered
+    a Wayland popup protocol error → killed qs). Content passed as a `Component`
+    (instantiated fresh inside; reparenting a shared Item rendered empty boxes). Slides
+    in from the right + fades, both ways.
+  - `IslandWorkspaces.qml`: fixed dispatch — end-4's `hl.dsp.focus({...})` is invalid in
+    vanilla Hyprland ("Invalid dispatcher"); switched to standard `workspace N` / `e±1`.
+  - `SidebarRight.qml`: top margin 44 (opens below the island strip) + slides in from the
+    right screen edge (Translate on content, window kept mapped through slide-out).
+  - Gotchas: brace-balance bugs are easy to misdiagnose because `${}` template literals
+    and reload-race stale reads show contradictory errors — verify with a string/comment/
+    template-aware brace counter, not `grep -c {`.
 
 - **2026-06-03 — Phase 2 LEFT island.** Built the left island iteratively with the user:
   - `IslandWorkspaces.qml` (custom): a `Row` of uniform-spaced dots where the CURRENT

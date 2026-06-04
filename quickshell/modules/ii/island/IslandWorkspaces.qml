@@ -49,9 +49,9 @@ Item {
         acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
         onWheel: event => {
             if (event.angleDelta.y < 0)
-                Hyprland.dispatch(`hl.dsp.focus({workspace = "r+1"})`);
+                Hyprland.dispatch(`workspace e+1`);
             else if (event.angleDelta.y > 0)
-                Hyprland.dispatch(`hl.dsp.focus({workspace = "r-1"})`);
+                Hyprland.dispatch(`workspace e-1`);
         }
     }
 
@@ -108,7 +108,7 @@ Item {
                 MouseArea {
                     anchors.fill: parent
                     acceptedButtons: Qt.LeftButton
-                    onPressed: Hyprland.dispatch(`hl.dsp.focus({ workspace = ${del.wsId}})`)
+                    onPressed: Hyprland.dispatch(`workspace ${del.wsId}`)
                 }
             }
         }

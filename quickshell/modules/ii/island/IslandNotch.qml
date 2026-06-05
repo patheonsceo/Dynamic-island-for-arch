@@ -216,10 +216,10 @@ Scope {
                 }
             }
             property real targetWidth: islandState === "open" ? (root.surfaceSizes[Island.openSurface]?.w ?? root.maxWidth)
-                : islandState === "expanded" ? Math.min(root.expandedMaxWidth, contentWidth + (displaySource === "agent" ? 56 : 36))
+                : islandState === "expanded" ? Math.min(root.expandedMaxWidth, contentWidth + (displaySource === "agent" ? 72 : 36))
                 : 180
             property real targetHeight: islandState === "open" ? (root.surfaceSizes[Island.openSurface]?.h ?? root.maxHeight)
-                : islandState === "expanded" ? (displaySource === "media" ? 40 : displaySource === "agent" ? 50 : 54)
+                : islandState === "expanded" ? (displaySource === "media" || displaySource === "agent" ? 40 : 54)
                 : 36
 
             // Full-screen click-catcher (only while open). Sits BEHIND the notch

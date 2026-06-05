@@ -169,17 +169,15 @@ FocusScope {
                                 StyledText { id: nf; anchors.centerIn: parent; text: "new file"; font.pixelSize: Appearance.font.pixelSize.smaller; color: surf.cGreen }
                             }
                         }
-                        Flickable {
+                        ScrollView {
+                            id: previewScroll
                             Layout.fillWidth: true
                             Layout.fillHeight: true
                             clip: true
-                            contentWidth: width
-                            contentHeight: bodyText.implicitHeight
-                            boundsBehavior: Flickable.StopAtBounds
-                            ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+                            ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+                            ScrollBar.vertical.policy: ScrollBar.AsNeeded
                             StyledText {
-                                id: bodyText
-                                width: parent.width
+                                width: previewScroll.availableWidth
                                 text: {
                                     const k = card.preview?.kind ?? "generic";
                                     if (k === "bash") return "$ " + (card.preview?.command ?? "");

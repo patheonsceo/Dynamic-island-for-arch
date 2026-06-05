@@ -182,8 +182,10 @@ Scope {
             }
             SequentialAnimation {
                 id: permFlashAnim
-                NumberAnimation { target: notchWindow; property: "permFlash"; to: 1; duration: 110; easing.type: Easing.OutQuad }
-                NumberAnimation { target: notchWindow; property: "permFlash"; to: 0; duration: 540; easing.type: Easing.InQuad }
+                NumberAnimation { target: notchWindow; property: "permFlash"; to: 1; duration: 90; easing.type: Easing.OutQuad }
+                NumberAnimation { target: notchWindow; property: "permFlash"; to: 0.35; duration: 220; easing.type: Easing.InOutQuad }
+                NumberAnimation { target: notchWindow; property: "permFlash"; to: 1; duration: 130; easing.type: Easing.OutQuad }
+                NumberAnimation { target: notchWindow; property: "permFlash"; to: 0; duration: 650; easing.type: Easing.InQuad }
             }
 
             // Downsampled equalizer bars from the cava points (0..1).
@@ -295,7 +297,7 @@ Scope {
                 topRightRadius: 0
                 bottomLeftRadius: root.cornerRadius
                 bottomRightRadius: root.cornerRadius
-                border.width: notchWindow.permFlash > 0.01 ? 2 : 0
+                border.width: notchWindow.permFlash * 3
                 border.color: Qt.rgba(0.91, 0.64, 0.24, notchWindow.permFlash)
 
                 Behavior on width {

@@ -230,7 +230,7 @@ Scope {
                 }
             }
             property real targetWidth: islandState === "open" ? (root.surfaceSizes[Island.openSurface]?.w ?? root.maxWidth)
-                : islandState === "expanded" ? (displaySource === "agent" ? 224 : Math.min(root.expandedMaxWidth, contentWidth + 36))
+                : islandState === "expanded" ? (displaySource === "agent" ? (root.mediaActive ? 264 : 224) : Math.min(root.expandedMaxWidth, contentWidth + 36))
                 : 180
             property real targetHeight: islandState === "open" ? (root.surfaceSizes[Island.openSurface]?.h ?? root.maxHeight)
                 : islandState === "expanded" ? (displaySource === "media" || displaySource === "agent" ? 40 : 54)
@@ -513,6 +513,32 @@ Scope {
                             text: AgentService.sessionCount
                             color: IslandStyle.subtextColor
                             font.pixelSize: Appearance.font.pixelSize.small
+                        }
+                    }
+                    // now-playing indicator — coexists when media plays while an agent is active
+                    Item {
+                        Layout.alignment: Qt.AlignVCenter
+                        visible: root.mediaActive
+                        implicitWidth: 20
+                        implicitHeight: 20
+                        Rectangle { anchors.fill: parent; radius: 5; color: Qt.rgba(1, 1, 1, 0.08) }
+                        StyledImage {
+                            id: miniArt
+                            anchors.fill: parent
+                            source: root.displayedArt
+                            fillMode: Image.PreserveAspectCrop
+                            visible: root.displayedArt !== "" && status === Image.Ready
+                            layer.enabled: true
+                            layer.effect: OpacityMask {
+                                maskSource: Rectangle { width: miniArt.width; height: miniArt.height; radius: 5 }
+                            }
+                        }
+                        MaterialSymbol {
+                            anchors.centerIn: parent
+                            visible: !miniArt.visible
+                            text: "music_note"
+                            iconSize: 13
+                            color: IslandStyle.subtextColor
                         }
                     }
                 }

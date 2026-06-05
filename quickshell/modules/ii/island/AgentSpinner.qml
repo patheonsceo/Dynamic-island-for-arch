@@ -2,11 +2,12 @@ pragma ComponentBehavior: Bound
 import qs.modules.common
 import QtQuick
 
-// Pixel-art agent mascot + state glyph — frame-animated, state-tinted.
-// Reference: Vibe Island compact notch (CLI-spinner style). modes:
-//   working | running | waiting | permission | compact | done | idle
-// Left: an 8×8 pixel "creature" doing a 2-frame wiggle. Right: a state glyph —
-// bouncing bars while working, a pixel "?" while it needs you.
+// Pixel-art agent mascot + state glyph — distinct frame sets AND motion per state:
+//   working  → running legs (blue) + bouncing bars
+//   permission/waiting → antennae-up "alert" wiggle (orange) + a periodic shake + "?"
+//   done     → arms-up celebrate wave (green) + a happy hop
+//   running/idle (resting) → calm bob + occasional blink (green/grey)
+//   compact  → run frames (purple)
 Item {
     id: root
     property string mode: "working"
@@ -27,60 +28,81 @@ Item {
     readonly property bool showBars: root.mode === "working" || root.mode === "compact"
     readonly property bool showQuestion: root.mode === "permission" || root.mode === "waiting"
 
-    // 4-frame running cycle (head/eyes/antennae steady; legs + arms move).
-    readonly property var mascotFrames: [
-        [0,0,1,0,0,1,0,0,
-         0,1,1,1,1,1,1,0,
-         1,1,0,1,1,0,1,1,
-         1,1,1,1,1,1,1,1,
-         1,0,1,1,1,1,0,1,
-         0,0,1,1,1,1,0,0,
-         0,1,0,0,0,0,1,0,
-         1,0,0,0,0,0,0,1],
-        [0,0,1,0,0,1,0,0,
-         0,1,1,1,1,1,1,0,
-         1,1,0,1,1,0,1,1,
-         1,1,1,1,1,1,1,1,
-         1,0,1,1,1,1,0,1,
-         0,0,1,1,1,1,0,0,
-         0,0,1,0,0,1,0,0,
-         0,1,0,0,0,1,0,0],
-        [0,0,1,0,0,1,0,0,
-         0,1,1,1,1,1,1,0,
-         1,1,0,1,1,0,1,1,
-         1,1,1,1,1,1,1,1,
-         1,0,1,1,1,1,0,1,
-         0,0,1,1,1,1,0,0,
-         0,0,0,1,1,0,0,0,
-         0,0,1,0,0,1,0,0],
-        [0,0,1,0,0,1,0,0,
-         0,1,1,1,1,1,1,0,
-         1,1,0,1,1,0,1,1,
-         1,1,1,1,1,1,1,1,
-         1,0,1,1,1,1,0,1,
-         0,0,1,1,1,1,0,0,
-         0,1,0,0,0,1,0,0,
-         0,0,1,0,0,0,1,0]
+    // ---------- frame sets (8×8) ----------
+    readonly property var runFrames: [
+        [0,0,1,0,0,1,0,0, 0,1,1,1,1,1,1,0, 1,1,0,1,1,0,1,1, 1,1,1,1,1,1,1,1, 1,0,1,1,1,1,0,1, 0,0,1,1,1,1,0,0, 0,1,0,0,0,0,1,0, 1,0,0,0,0,0,0,1],
+        [0,0,1,0,0,1,0,0, 0,1,1,1,1,1,1,0, 1,1,0,1,1,0,1,1, 1,1,1,1,1,1,1,1, 1,0,1,1,1,1,0,1, 0,0,1,1,1,1,0,0, 0,0,1,0,0,1,0,0, 0,1,0,0,0,1,0,0],
+        [0,0,1,0,0,1,0,0, 0,1,1,1,1,1,1,0, 1,1,0,1,1,0,1,1, 1,1,1,1,1,1,1,1, 1,0,1,1,1,1,0,1, 0,0,1,1,1,1,0,0, 0,0,0,1,1,0,0,0, 0,0,1,0,0,1,0,0],
+        [0,0,1,0,0,1,0,0, 0,1,1,1,1,1,1,0, 1,1,0,1,1,0,1,1, 1,1,1,1,1,1,1,1, 1,0,1,1,1,1,0,1, 0,0,1,1,1,1,0,0, 0,1,0,0,0,1,0,0, 0,0,1,0,0,0,1,0]
+    ]
+    readonly property var celebrateFrames: [
+        [1,0,0,0,0,0,0,1, 0,0,1,1,1,1,0,0, 0,1,1,1,1,1,1,0, 1,1,0,1,1,0,1,1, 1,1,1,1,1,1,1,1, 0,1,1,1,1,1,1,0, 0,1,0,0,0,0,1,0, 1,0,0,0,0,0,0,1],
+        [0,0,1,0,0,1,0,0, 1,0,1,1,1,1,0,1, 0,1,1,1,1,1,1,0, 1,1,0,1,1,0,1,1, 1,1,1,1,1,1,1,1, 0,1,1,1,1,1,1,0, 0,0,1,0,0,1,0,0, 0,1,0,0,0,1,0,0]
+    ]
+    readonly property var alertFrames: [
+        [0,1,0,0,0,0,1,0, 0,0,1,0,0,1,0,0, 0,1,1,1,1,1,1,0, 1,1,0,1,1,0,1,1, 1,1,1,1,1,1,1,1, 1,0,1,1,1,1,0,1, 1,0,1,0,0,1,0,1, 0,0,0,1,1,0,0,0],
+        [1,0,0,0,0,0,0,1, 0,1,0,0,0,0,1,0, 0,1,1,1,1,1,1,0, 1,1,0,1,1,0,1,1, 1,1,1,1,1,1,1,1, 1,0,1,1,1,1,0,1, 1,0,1,0,0,1,0,1, 0,0,0,1,1,0,0,0]
+    ]
+    readonly property var idleFrames: [
+        [0,0,1,0,0,1,0,0, 0,1,1,1,1,1,1,0, 1,1,0,1,1,0,1,1, 1,1,1,1,1,1,1,1, 1,0,1,1,1,1,0,1, 0,0,1,1,1,1,0,0, 0,1,0,0,0,0,1,0, 1,0,0,0,0,0,0,1],
+        [0,0,1,0,0,1,0,0, 0,1,1,1,1,1,1,0, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,0,1,1,1,1,0,1, 0,0,1,1,1,1,0,0, 0,1,0,0,0,0,1,0, 1,0,0,0,0,0,0,1]
     ]
     readonly property var qFrame: [
-        0,1,1,1,0,
-        1,0,0,0,1,
-        0,0,0,1,0,
-        0,0,1,0,0,
-        0,0,1,0,0,
-        0,0,0,0,0,
-        0,0,0,0,0,
-        0,0,1,0,0]
+        0,1,1,1,0, 1,0,0,0,1, 0,0,0,1,0, 0,0,1,0,0, 0,0,1,0,0, 0,0,0,0,0, 0,0,0,0,0, 0,0,1,0,0]
+
+    function framesFor(m) {
+        if (m === "done") return root.celebrateFrames;
+        if (m === "permission" || m === "waiting") return root.alertFrames;
+        if (m === "running" || m === "idle") return root.idleFrames;
+        return root.runFrames; // working, compact
+    }
+    function intervalFor(m) {
+        if (m === "done") return 200;
+        if (m === "permission" || m === "waiting") return 150;
+        if (m === "running" || m === "idle") return 480;
+        return 150;
+    }
 
     property int frame: 0
     property int barFrame: 0
-    // running cycle (mascot always lively); bars run a touch faster while working
-    Timer { interval: 150; running: root.animated; repeat: true; onTriggered: root.frame = (root.frame + 1) % root.mascotFrames.length }
+    Timer {
+        interval: root.intervalFor(root.mode)
+        running: root.animated
+        repeat: true
+        onTriggered: root.frame = (root.frame + 1) % root.framesFor(root.mode).length
+    }
     Timer { interval: 170; running: root.animated && root.showBars; repeat: true; onTriggered: root.barFrame = (root.barFrame + 1) % 4 }
 
     function barH(i) {
         const tbl = [[0.35, 0.85, 0.30], [0.85, 0.40, 0.70], [0.50, 1.00, 0.40], [1.00, 0.30, 0.80]];
         return tbl[(root.barFrame + i * 2) % tbl.length][i];
+    }
+
+    // ---------- per-state motion ----------
+    property real motionX: 0
+    property real motionY: 0
+    onModeChanged: { root.motionX = 0; root.motionY = 0; }
+
+    SequentialAnimation on motionY { // celebrate hop (done)
+        running: root.animated && root.mode === "done"
+        loops: Animation.Infinite
+        NumberAnimation { from: 0; to: -5 * root.pixel; duration: 200; easing.type: Easing.OutQuad }
+        NumberAnimation { from: -5 * root.pixel; to: 0; duration: 260; easing.type: Easing.OutBounce }
+        PauseAnimation { duration: 280 }
+    }
+    SequentialAnimation on motionY { // gentle bob (resting)
+        running: root.animated && (root.mode === "running" || root.mode === "idle")
+        loops: Animation.Infinite
+        NumberAnimation { from: 0; to: -1.5 * root.pixel; duration: 850; easing.type: Easing.InOutSine }
+        NumberAnimation { from: -1.5 * root.pixel; to: 0; duration: 850; easing.type: Easing.InOutSine }
+    }
+    SequentialAnimation on motionX { // alert shake (needs-you)
+        running: root.animated && (root.mode === "permission" || root.mode === "waiting")
+        loops: Animation.Infinite
+        NumberAnimation { from: 0; to: 1.5 * root.pixel; duration: 70 }
+        NumberAnimation { from: 1.5 * root.pixel; to: -1.5 * root.pixel; duration: 110 }
+        NumberAnimation { from: -1.5 * root.pixel; to: 0; duration: 70 }
+        PauseAnimation { duration: 650 }
     }
 
     implicitHeight: 8 * root.pixel
@@ -119,7 +141,8 @@ Item {
             gh: 8
             cell: root.pixel
             col: root.tint
-            pixels: root.mascotFrames[root.frame]
+            pixels: root.framesFor(root.mode)[root.frame % root.framesFor(root.mode).length]
+            transform: Translate { x: root.motionX; y: root.motionY }
         }
 
         Row {

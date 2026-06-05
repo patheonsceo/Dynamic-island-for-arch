@@ -32,9 +32,16 @@ Singleton {
 
     // --- derived: what the compact notch shows (most-urgent session) ---
     readonly property var sessionList: {
+        const rank = { "permission": 0, "waiting": 1, "working": 2, "running": 3, "idle": 3, "done": 4 };
         const out = [];
         for (const k in root.sessions)
             out.push(Object.assign({ "id": k }, root.sessions[k]));
+        out.sort((a, b) => {
+            const ra = rank[a.status] ?? 5, rb = rank[b.status] ?? 5;
+            if (ra !== rb)
+                return ra - rb;
+            return (b.ts || 0) - (a.ts || 0); // most recent first within a rank
+        });
         return out;
     }
     readonly property int sessionCount: root.sessionList.length

@@ -102,6 +102,14 @@ FocusScope {
                         }
                     }
                     Chip { Layout.alignment: Qt.AlignVCenter; label: "Claude" }
+                    StyledText {
+                        Layout.alignment: Qt.AlignVCenter
+                        visible: AgentService.pendingPermissions.length > 1
+                        text: "1 / " + AgentService.pendingPermissions.length
+                        font.pixelSize: Appearance.font.pixelSize.smaller
+                        font.weight: Font.DemiBold
+                        color: surf.cOrange
+                    }
                 }
 
                 // ⚠ tool

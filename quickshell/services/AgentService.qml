@@ -26,7 +26,9 @@ Singleton {
     property var sessions: ({})
     // [{ request_id, session_id, project, cwd, tool, summary, ts }]
     property var pendingPermissions: []
-    property var _conns: ({})  // request_id → Socket (held open until decided)
+    property var _conns: ({})          // request_id → Socket (held open until decided)
+    property var _sessionBypass: ({})  // session_id → true (Bypass: allow ALL tools)
+    property var _toolAllow: ({})       // "session|tool" → true (Allow All: this tool)
 
     // no-op so shell.qml can force-instantiate this singleton (→ server goes active)
     function load() {}
@@ -60,26 +62,42 @@ Singleton {
         root.sessions = next;
     }
 
+    function _autoAllowed(sid, tool) {
+        return root._sessionBypass[sid] === true || root._toolAllow[sid + "|" + tool] === true;
+    }
+
     function addPermission(obj, conn) {
+        const sid = obj.session_id || "";
+        const tool = obj.tool || "";
+        // Honour an earlier "Allow All" / "Bypass" rule → auto-allow, no UI.
+        if (root._autoAllowed(sid, tool)) {
+            try {
+                conn.write(JSON.stringify({ "type": "permission_decision", "request_id": obj.request_id, "decision": "allow", "reason": "auto-allowed" }) + "\n");
+                conn.flush();
+            } catch (e) {}
+            root.applyEvent({ "session_id": sid, "cwd": obj.cwd, "project": obj.project, "event": "PreToolUse", "tool": tool, "summary": obj.summary });
+            return;
+        }
+        conn.reqId = obj.request_id;
         root._conns[obj.request_id] = conn;
         const list = root.pendingPermissions.slice();
         list.push({
             "request_id": obj.request_id,
-            "session_id": obj.session_id || "",
+            "session_id": sid,
             "project": obj.project || "",
             "cwd": obj.cwd || "",
-            "tool": obj.tool || "",
+            "tool": tool,
             "summary": obj.summary || "",
+            "preview": obj.preview || null,
             "ts": obj.ts || 0,
         });
         root.pendingPermissions = list;
-        const sid = obj.session_id || "default";
-        const prev = root.sessions[sid] || {};
+        const prev = root.sessions[sid || "default"] || {};
         const next = Object.assign({}, root.sessions);
-        next[sid] = Object.assign({}, prev, {
+        next[sid || "default"] = Object.assign({}, prev, {
             "project": obj.project || prev.project || "",
             "cwd": obj.cwd || prev.cwd || "",
-            "tool": obj.tool || "",
+            "tool": tool,
             "summary": obj.summary || "",
             "status": "permission",
         });
@@ -106,8 +124,30 @@ Singleton {
         }
         dropPending(reqId);
     }
-    function allow(reqId) { root.decide(reqId, "allow", ""); }
-    function deny(reqId, reason) { root.decide(reqId, "deny", reason || "Denied from the island"); }
+    function _pending(reqId) {
+        return root.pendingPermissions.find(p => p.request_id === reqId) || null;
+    }
+    function deny(reqId) { root.decide(reqId, "deny", "Denied from the island"); }
+    function allowOnce(reqId) { root.decide(reqId, "allow", "Allowed once"); }
+    function allow(reqId) { root.allowOnce(reqId); }  // alias
+    function allowAll(reqId) {
+        const p = root._pending(reqId);
+        if (p) {
+            const m = Object.assign({}, root._toolAllow);
+            m[(p.session_id || "") + "|" + (p.tool || "")] = true;
+            root._toolAllow = m;
+        }
+        root.decide(reqId, "allow", "Allow all (this tool, this session)");
+    }
+    function bypass(reqId) {
+        const p = root._pending(reqId);
+        if (p) {
+            const m = Object.assign({}, root._sessionBypass);
+            m[p.session_id || ""] = true;
+            root._sessionBypass = m;
+        }
+        root.decide(reqId, "allow", "Bypass (all tools, this session)");
+    }
 
     function onLine(conn, line) {
         if (!line || line.trim().length === 0)
@@ -121,7 +161,6 @@ Singleton {
             return;
         }
         if (obj.type === "permission_request" && obj.request_id) {
-            conn.reqId = obj.request_id;
             root.addPermission(obj, conn);
         } else {
             root.applyEvent(obj);
@@ -143,15 +182,29 @@ Singleton {
             if (root.pendingPermissions.length === 0)
                 return "none";
             const r = root.pendingPermissions[0].request_id;
-            root.allow(r);
-            return "allowed " + r;
+            root.allowOnce(r);
+            return "allowOnce " + r;
         }
         function denyOldest(): string {
             if (root.pendingPermissions.length === 0)
                 return "none";
             const r = root.pendingPermissions[0].request_id;
-            root.deny(r, "Denied (ipc)");
-            return "denied " + r;
+            root.deny(r);
+            return "deny " + r;
+        }
+        function allowAllOldest(): string {
+            if (root.pendingPermissions.length === 0)
+                return "none";
+            const r = root.pendingPermissions[0].request_id;
+            root.allowAll(r);
+            return "allowAll " + r;
+        }
+        function bypassOldest(): string {
+            if (root.pendingPermissions.length === 0)
+                return "none";
+            const r = root.pendingPermissions[0].request_id;
+            root.bypass(r);
+            return "bypass " + r;
         }
     }
 

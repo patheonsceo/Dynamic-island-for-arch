@@ -42,9 +42,13 @@ All styled via `IslandStyle`. Notch reserves a 40px top strip (`exclusiveZone`).
 disconnect-cleanup) via the `agent` IPC target. Hooks NOT yet installed into live
 `~/.claude/settings.json` (snippet in `bridge/hooks.settings.json`).
 
-**NEXT:** the notch `agent` UI (status + Allow/Deny) — waiting on the user's
-visual references. Then install hooks + test with a real Claude Code session,
-then Phase 8 (multi-session polish).
+**Phase 7 in progress.** Design signed off (see `AGENT_UI.md`): agent-forward
+precedence, 4 permission buttons (Deny/Allow Once/Allow All/Bypass), faithful
+pixel mascot, jump skipped. Backend data contract DONE & proven: hook sends a
+rich `preview` (write/edit/bash); AgentService has 4-way decisions + island-side
+Allow-All/Bypass auto-rules (tool-scoped). **NEXT (visual):** pixel mascot/spinner
+→ compact agent notch state → session-list surface → permission surface → wire
+precedence → install hooks + real-session test.
 
 ---
 

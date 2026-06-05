@@ -66,6 +66,26 @@ def summarize(payload):
         return ""
 
 
+def build_preview(payload):
+    """Compact preview of the pending action for the permission card."""
+    tool = payload.get("tool_name", "")
+    ti = payload.get("tool_input", {}) or {}
+    if tool == "Bash":
+        return {"kind": "bash", "command": str(ti.get("command", ""))[:2000]}
+    if tool == "Write":
+        content = str(ti.get("content", ti.get("file_text", "")))
+        return {"kind": "write", "path": ti.get("file_path", ""),
+                "body": "\n".join(content.splitlines()[:24])}
+    if tool in ("Edit", "MultiEdit"):
+        return {"kind": "edit", "path": ti.get("file_path", ""),
+                "old": str(ti.get("old_string", ""))[:1200],
+                "new": str(ti.get("new_string", ""))[:1200]}
+    if tool == "NotebookEdit":
+        return {"kind": "edit", "path": ti.get("notebook_path", ""),
+                "new": str(ti.get("new_source", ""))[:1200]}
+    return {"kind": "generic", "body": json.dumps(ti)[:1200]}
+
+
 def base_msg(payload):
     cwd = payload.get("cwd", "") or ""
     prompt = payload.get("prompt") or ""
@@ -101,6 +121,7 @@ def do_permission(payload):
     msg = base_msg(payload)
     msg["type"] = "permission_request"
     msg["request_id"] = uuid.uuid4().hex
+    msg["preview"] = build_preview(payload)
     try:
         s = connect(CONNECT_TIMEOUT)
     except Exception:

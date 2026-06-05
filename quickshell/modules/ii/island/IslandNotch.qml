@@ -216,7 +216,7 @@ Scope {
                 }
             }
             property real targetWidth: islandState === "open" ? (root.surfaceSizes[Island.openSurface]?.w ?? root.maxWidth)
-                : islandState === "expanded" ? Math.min(root.expandedMaxWidth, contentWidth + (displaySource === "agent" ? 72 : 36))
+                : islandState === "expanded" ? Math.min(root.expandedMaxWidth, contentWidth + (displaySource === "agent" ? 28 : 36))
                 : 180
             property real targetHeight: islandState === "open" ? (root.surfaceSizes[Island.openSurface]?.h ?? root.maxHeight)
                 : islandState === "expanded" ? (displaySource === "media" || displaySource === "agent" ? 40 : 54)
@@ -466,7 +466,7 @@ Scope {
                 RowLayout {
                     id: agentUI
                     anchors.centerIn: parent
-                    spacing: 13
+                    spacing: 0
                     opacity: notchWindow.islandState === "expanded" && notchWindow.displaySource === "agent" ? 1 : 0
                     visible: opacity > 0
                     Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
@@ -476,6 +476,8 @@ Scope {
                         mode: AgentService.headlineMode === "idle" ? "running" : (AgentService.headlineMode === "" ? "idle" : AgentService.headlineMode)
                         pixel: 2
                     }
+                    // Dynamic-Island spread: estate sits in the middle, content hugs edges.
+                    Item { Layout.preferredWidth: 54; Layout.fillHeight: true }
                     AgentStatusText {
                         Layout.alignment: Qt.AlignVCenter
                         readonly property string m: AgentService.headlineMode
@@ -486,6 +488,7 @@ Scope {
                     }
                     StyledText {
                         Layout.alignment: Qt.AlignVCenter
+                        Layout.leftMargin: 12
                         visible: AgentService.sessionCount > 1
                         text: "·  " + AgentService.sessionCount
                         color: IslandStyle.subtextColor

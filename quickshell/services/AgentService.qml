@@ -87,6 +87,7 @@ Singleton {
     function applyEvent(obj) {
         const sid = obj.session_id || "default";
         const prev = root.sessions[sid] || {};
+        const st = statusFor(obj.event, prev.status);
         const next = Object.assign({}, root.sessions);
         next[sid] = {
             "project": obj.project || prev.project || "",
@@ -95,10 +96,34 @@ Singleton {
             "summary": obj.summary || "",
             "message": obj.message || "",
             "lastEvent": obj.event || "",
-            "status": statusFor(obj.event, prev.status),
+            "status": st,
             "ts": obj.ts || 0,
+            "doneTick": st === "done" ? root._tick : 0,
         };
         root.sessions = next;
+    }
+
+    // Prune finished sessions a few seconds after Stop so the notch returns to
+    // State 1 (base) when nothing is running. Tick-based to avoid Date.
+    property int _tick: 0
+    readonly property int _doneLingerTicks: 5
+    Timer {
+        interval: 1000
+        running: true
+        repeat: true
+        onTriggered: {
+            root._tick++;
+            let changed = false;
+            const next = Object.assign({}, root.sessions);
+            for (const k in next) {
+                if (next[k].status === "done" && (root._tick - (next[k].doneTick || 0)) >= root._doneLingerTicks) {
+                    delete next[k];
+                    changed = true;
+                }
+            }
+            if (changed)
+                root.sessions = next;
+        }
     }
 
     function _autoAllowed(sid, tool) {

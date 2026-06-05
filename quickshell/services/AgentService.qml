@@ -113,6 +113,7 @@ Singleton {
             "status": st,
             "ts": obj.ts || 0,
             "doneTick": st === "done" ? root._tick : 0,
+            "seenTick": root._tick,
         };
         root.sessions = next;
     }
@@ -120,7 +121,8 @@ Singleton {
     // Prune finished sessions a few seconds after Stop so the notch returns to
     // State 1 (base) when nothing is running. Tick-based to avoid Date.
     property int _tick: 0
-    readonly property int _doneLingerTicks: 5
+    readonly property int _doneLingerTicks: 5     // finished session lingers ~5s then collapses
+    readonly property int _stalenessTicks: 300    // no events for ~5 min → ghost session, prune
     Timer {
         interval: 1000
         running: true
@@ -130,7 +132,12 @@ Singleton {
             let changed = false;
             const next = Object.assign({}, root.sessions);
             for (const k in next) {
-                if (next[k].status === "done" && (root._tick - (next[k].doneTick || 0)) >= root._doneLingerTicks) {
+                const s = next[k];
+                if (s.status === "done" && (root._tick - (s.doneTick || 0)) >= root._doneLingerTicks) {
+                    delete next[k];
+                    changed = true;
+                } else if (s.status !== "permission" && (root._tick - (s.seenTick || 0)) >= root._stalenessTicks) {
+                    // ghost (crashed terminal / killed claude with no Stop) — clean up.
                     delete next[k];
                     changed = true;
                 }
@@ -178,6 +185,7 @@ Singleton {
             "tool": tool,
             "summary": obj.summary || "",
             "status": "permission",
+            "seenTick": root._tick,
         });
         root.sessions = next;
     }

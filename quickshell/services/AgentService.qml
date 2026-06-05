@@ -115,6 +115,7 @@ Singleton {
             "status": st,
             "ts": obj.ts || 0,
             "doneTick": st === "done" ? root._tick : 0,
+            "waitTick": st === "waiting" ? (prev.status === "waiting" ? (prev.waitTick || root._tick) : root._tick) : 0,
             "seenTick": root._tick,
         };
         root.sessions = next;
@@ -125,6 +126,7 @@ Singleton {
     property int _tick: 0
     property double now: Math.floor(Date.now() / 1000)  // live epoch seconds (for relative time)
     readonly property int _doneLingerTicks: 5     // finished session lingers ~5s then collapses
+    readonly property int _waitDemoteTicks: 60    // "waiting" → calm resting after ~1 min
     readonly property int _stalenessTicks: 300    // no events for ~5 min → ghost session, prune
     Timer {
         interval: 1000
@@ -139,6 +141,10 @@ Singleton {
                 const s = next[k];
                 if (s.status === "done" && (root._tick - (s.doneTick || 0)) >= root._doneLingerTicks) {
                     delete next[k];
+                    changed = true;
+                } else if (s.status === "waiting" && (root._tick - (s.waitTick || 0)) >= root._waitDemoteTicks) {
+                    // idle-waiting for ~1 min → drop the "Waiting…" back to calm resting
+                    next[k] = Object.assign({}, s, { "status": "idle" });
                     changed = true;
                 } else if (s.status !== "permission" && (root._tick - (s.seenTick || 0)) >= root._stalenessTicks) {
                     // ghost (crashed terminal / killed claude with no Stop) — clean up.

@@ -193,8 +193,18 @@ FocusScope {
                                 color: IslandStyle.subtextColor
                                 wrapMode: Text.Wrap
                             }
+                            // drag-to-scroll (robust; wheel-up isn't delivered to layer
+                            // surfaces under nested Hyprland) + wheel for good measure
                             MouseArea {
                                 anchors.fill: parent
+                                cursorShape: pview.maxScroll > 0 ? Qt.OpenHandCursor : Qt.ArrowCursor
+                                property real lastY: 0
+                                onPressed: m => lastY = m.y
+                                onPositionChanged: m => {
+                                    if (pressed)
+                                        pview.scrollY = Math.max(0, Math.min(pview.maxScroll, pview.scrollY - (m.y - lastY)));
+                                    lastY = m.y;
+                                }
                                 onWheel: wheel => {
                                     pview.scrollY = Math.max(0, Math.min(pview.maxScroll, pview.scrollY - wheel.angleDelta.y * 0.6));
                                 }

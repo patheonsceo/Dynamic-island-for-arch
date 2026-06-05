@@ -111,7 +111,7 @@ Item {
     Row {
         id: glyphRow
         anchors.verticalCenter: parent.verticalCenter
-        spacing: root.pixel * 2 + 2
+        spacing: root.pixel * 2 + 4
 
         PixelCanvas {
             anchors.verticalCenter: parent.verticalCenter

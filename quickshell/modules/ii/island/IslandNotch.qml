@@ -216,7 +216,7 @@ Scope {
                 }
             }
             property real targetWidth: islandState === "open" ? (root.surfaceSizes[Island.openSurface]?.w ?? root.maxWidth)
-                : islandState === "expanded" ? Math.min(root.expandedMaxWidth, contentWidth + (displaySource === "agent" ? 20 : 36))
+                : islandState === "expanded" ? (displaySource === "agent" ? 224 : Math.min(root.expandedMaxWidth, contentWidth + 36))
                 : 180
             property real targetHeight: islandState === "open" ? (root.surfaceSizes[Island.openSurface]?.h ?? root.maxHeight)
                 : islandState === "expanded" ? (displaySource === "media" || displaySource === "agent" ? 40 : 54)
@@ -465,8 +465,10 @@ Scope {
                 // ---- agent (compact): pixel mascot + status ----
                 RowLayout {
                     id: agentUI
-                    anchors.centerIn: parent
-                    spacing: 8
+                    anchors.fill: parent
+                    anchors.leftMargin: 16   // breathing room to the LEFT of the mascot
+                    anchors.rightMargin: 14
+                    spacing: 11              // gap between the mascot cluster and the text area
                     opacity: notchWindow.islandState === "expanded" && notchWindow.displaySource === "agent" ? 1 : 0
                     visible: opacity > 0
                     Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
@@ -476,10 +478,10 @@ Scope {
                         mode: AgentService.headlineMode === "idle" ? "running" : (AgentService.headlineMode === "" ? "idle" : AgentService.headlineMode)
                         pixel: 2
                     }
-                    // Status text centered in the remaining estate (fixed width →
-                    // no jitter as the word/state changes). Count rides the far right.
+                    // Fills the remaining estate; status text centered IN it (true
+                    // midpoint of the right-hand space). Count rides the far right.
                     Item {
-                        Layout.preferredWidth: 142
+                        Layout.fillWidth: true
                         Layout.fillHeight: true
                         AgentStatusText {
                             anchors.centerIn: parent

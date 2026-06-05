@@ -521,10 +521,13 @@ Scope {
                         AgentStatusText {
                             anchors.centerIn: parent
                             readonly property string m: AgentService.headlineMode
-                            word: m === "permission" ? "Needs you" : m === "waiting" ? "Waiting" : m === "working" ? "Working" : m === "done" ? "Done" : "Agent Island"
-                            animateDots: m === "working" || m === "waiting"
-                            shimmer: m === "working" || m === "waiting" || m === "permission"
-                            baseColor: m === "done" ? "#7EE787" : IslandStyle.textColor
+                            readonly property string t: AgentService.toast
+                            word: t !== "" ? t
+                                : m === "permission" ? "Needs you" : m === "waiting" ? "Waiting"
+                                : m === "working" ? "Working" : m === "done" ? "Done" : "Agent Island"
+                            animateDots: t === "" && (m === "working" || m === "waiting")
+                            shimmer: t === "" && (m === "working" || m === "waiting" || m === "permission")
+                            baseColor: (t !== "" || m === "done") ? "#7EE787" : IslandStyle.textColor
                             pixelSize: Appearance.font.pixelSize.small
                         }
                         StyledText {

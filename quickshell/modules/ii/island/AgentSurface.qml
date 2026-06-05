@@ -27,6 +27,15 @@ FocusScope {
         const s = (summary && summary !== "{}") ? summary : "";
         return (project || "session") + (s ? "  ·  " + s : "");
     }
+    function relTime(ts) {
+        if (!ts)
+            return "";
+        const age = Math.max(0, Math.floor(DateTime.clock.date.getTime() / 1000 - ts));
+        if (age < 60) return age + "s";
+        if (age < 3600) return Math.floor(age / 60) + "m";
+        if (age < 86400) return Math.floor(age / 3600) + "h";
+        return Math.floor(age / 86400) + "d";
+    }
     function statusLabel(s) {
         return s === "working" ? "Working…" : s === "waiting" ? "Waiting for input"
              : s === "permission" ? "Needs approval" : s === "done" ? "Done" : "Idle";
@@ -377,9 +386,9 @@ FocusScope {
                             Chip { Layout.alignment: Qt.AlignVCenter; label: "Claude" }
                             StyledText {
                                 Layout.alignment: Qt.AlignVCenter
-                                text: srow.modelData.status
+                                text: surf.relTime(srow.modelData.ts)
                                 font.pixelSize: Appearance.font.pixelSize.smaller
-                                color: surf.statusColor(srow.modelData.status)
+                                color: IslandStyle.subtextColor
                             }
                         }
 

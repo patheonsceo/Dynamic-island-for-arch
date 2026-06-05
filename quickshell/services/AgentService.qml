@@ -236,6 +236,7 @@ Singleton {
             const m = Object.assign({}, root._toolAllow);
             m[(p.session_id || "") + "|" + (p.tool || "")] = true;
             root._toolAllow = m;
+            root._toast("Allow " + (p.tool || "tool") + " ✓");
         }
         root.decide(reqId, "allow", "Allow all (this tool, this session)");
     }
@@ -245,9 +246,15 @@ Singleton {
             const m = Object.assign({}, root._sessionBypass);
             m[p.session_id || ""] = true;
             root._sessionBypass = m;
+            root._toast("Bypass ✓");
         }
         root.decide(reqId, "allow", "Bypass (all tools, this session)");
     }
+
+    // brief confirmation toast shown in the compact notch
+    property string toast: ""
+    Timer { id: toastTimer; interval: 2600; onTriggered: root.toast = "" }
+    function _toast(t) { root.toast = t; toastTimer.restart(); }
 
     function onLine(conn, line) {
         if (!line || line.trim().length === 0)

@@ -46,15 +46,34 @@ disconnect-cleanup) via the `agent` IPC target. Hooks NOT yet installed into liv
 precedence, 4 permission buttons (Deny/Allow Once/Allow All/Bypass), faithful
 pixel mascot, jump skipped. Backend data contract DONE & proven: hook sends a
 rich `preview` (write/edit/bash); AgentService has 4-way decisions + island-side
-Allow-All/Bypass auto-rules (tool-scoped). Compact agent State 2 DONE & user-approved (pixel mascot running cycle, animated
-shimmer/dots status text, Dynamic-Island spread, auto-collapse to State 1).
-**NEXT:** State 3 surface (session list + orange permission card with preview +
-Deny/Allow Once/Allow All/Bypass), click + auto-open-on-permission, then install
-hooks + real-session test.
+Allow-All/Bypass auto-rules (tool-scoped). **Phase 6 + 7 DONE & VALIDATED WITH A REAL CLAUDE CODE SESSION (2026-06-06).**
+The headline feature works end-to-end: a real `claude` session (in the isolated
+`~/agent-island-test/` sandbox with project-level hooks) lit up the notch —
+Working… → orange permission card with the file preview → approved from the
+island → Claude Code wrote the file and continued. Compact State 2 (pixel mascot
+running cycle, shimmer/dots status, DI spread, auto-collapse) + State 3 surface
+(session list + permission card, Deny/Allow Once/Allow All/Bypass, auto-open on
+permission, stale-status revert) all user-approved.
+**NEXT — Phase 8:** multiple concurrent sessions (queue + list), a brief 'Done'
+state, optional media side-indicator coexistence, turn OFF debug logging,
+multi-monitor check; then decide on enabling hooks for real day-to-day use.
 
 ---
 
 ## Done (newest first)
+
+- **2026-06-06 — Phase 6+7 agent feature VALIDATED end-to-end (real Claude Code).**
+  Ran a real `claude` session in `~/agent-island-test/` (project-level hooks,
+  isolated from the dev session): notch showed SessionStart → Working… → the
+  orange permission card with the real Write preview; approved from the island;
+  Claude Code wrote hello.txt and continued. Full UI built + user-approved:
+  AgentSpinner (4-frame running pixel mascot, state-tinted), AgentStatusText
+  (shimmer + cycling dots, fixed width), compact State 2 (DI spread, fixed 224w,
+  auto-collapse via 5s done-prune), AgentSurface State 3 (session list +
+  permission card with write/edit/bash preview + Deny/Allow Once/Allow All/Bypass
+  w/ 2-click confirm). Permission auto-opens the surface and auto-closes on
+  resolve. Bugs fixed live: status string mismatch (running vs working), stale
+  "permission" status after resolve/timeout (dropPending reverts to working).
 
 - **2026-06-05 — Phase 6 agent bridge BACKEND (safety-first).** Built the riskiest
   piece first and proved it before any UI. `bridge/oai_hook.py` (Python — no

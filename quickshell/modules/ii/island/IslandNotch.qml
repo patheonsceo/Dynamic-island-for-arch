@@ -466,7 +466,7 @@ Scope {
                 RowLayout {
                     id: agentUI
                     anchors.centerIn: parent
-                    spacing: 11
+                    spacing: 13
                     opacity: notchWindow.islandState === "expanded" && notchWindow.displaySource === "agent" ? 1 : 0
                     visible: opacity > 0
                     Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
@@ -474,22 +474,22 @@ Scope {
                         Layout.alignment: Qt.AlignVCenter
                         // resting presence → green "running" mascot (alive, no bars)
                         mode: AgentService.headlineMode === "idle" ? "running" : (AgentService.headlineMode === "" ? "idle" : AgentService.headlineMode)
-                        pixel: 3
+                        pixel: 2
+                    }
+                    AgentStatusText {
+                        Layout.alignment: Qt.AlignVCenter
+                        readonly property string m: AgentService.headlineMode
+                        word: m === "permission" ? "Needs you" : m === "waiting" ? "Waiting" : m === "working" ? "Working" : "Agent Island"
+                        animateDots: m === "working" || m === "waiting"
+                        shimmer: m === "working" || m === "waiting" || m === "permission"
+                        pixelSize: Appearance.font.pixelSize.small
                     }
                     StyledText {
                         Layout.alignment: Qt.AlignVCenter
-                        text: {
-                            const m = AgentService.headlineMode;
-                            let t = m === "permission" ? "Needs you"
-                                  : m === "waiting" ? "Waiting…"
-                                  : m === "working" ? "Working…"
-                                  : "Agent Island";
-                            if (AgentService.sessionCount > 1)
-                                t += "  ·  " + AgentService.sessionCount;
-                            return t;
-                        }
-                        color: IslandStyle.textColor
-                        font.pixelSize: Appearance.font.pixelSize.normal
+                        visible: AgentService.sessionCount > 1
+                        text: "·  " + AgentService.sessionCount
+                        color: IslandStyle.subtextColor
+                        font.pixelSize: Appearance.font.pixelSize.small
                     }
                 }
 

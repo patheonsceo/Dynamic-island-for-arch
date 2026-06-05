@@ -216,7 +216,7 @@ Scope {
                 }
             }
             property real targetWidth: islandState === "open" ? (root.surfaceSizes[Island.openSurface]?.w ?? root.maxWidth)
-                : islandState === "expanded" ? Math.min(root.expandedMaxWidth, contentWidth + (displaySource === "agent" ? 28 : 36))
+                : islandState === "expanded" ? Math.min(root.expandedMaxWidth, contentWidth + (displaySource === "agent" ? 20 : 36))
                 : 180
             property real targetHeight: islandState === "open" ? (root.surfaceSizes[Island.openSurface]?.h ?? root.maxHeight)
                 : islandState === "expanded" ? (displaySource === "media" || displaySource === "agent" ? 40 : 54)
@@ -466,7 +466,7 @@ Scope {
                 RowLayout {
                     id: agentUI
                     anchors.centerIn: parent
-                    spacing: 0
+                    spacing: 8
                     opacity: notchWindow.islandState === "expanded" && notchWindow.displaySource === "agent" ? 1 : 0
                     visible: opacity > 0
                     Behavior on opacity { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
@@ -476,23 +476,27 @@ Scope {
                         mode: AgentService.headlineMode === "idle" ? "running" : (AgentService.headlineMode === "" ? "idle" : AgentService.headlineMode)
                         pixel: 2
                     }
-                    // Dynamic-Island spread: estate sits in the middle, content hugs edges.
-                    Item { Layout.preferredWidth: 54; Layout.fillHeight: true }
-                    AgentStatusText {
-                        Layout.alignment: Qt.AlignVCenter
-                        readonly property string m: AgentService.headlineMode
-                        word: m === "permission" ? "Needs you" : m === "waiting" ? "Waiting" : m === "working" ? "Working" : "Agent Island"
-                        animateDots: m === "working" || m === "waiting"
-                        shimmer: m === "working" || m === "waiting" || m === "permission"
-                        pixelSize: Appearance.font.pixelSize.small
-                    }
-                    StyledText {
-                        Layout.alignment: Qt.AlignVCenter
-                        Layout.leftMargin: 12
-                        visible: AgentService.sessionCount > 1
-                        text: "·  " + AgentService.sessionCount
-                        color: IslandStyle.subtextColor
-                        font.pixelSize: Appearance.font.pixelSize.small
+                    // Status text centered in the remaining estate (fixed width →
+                    // no jitter as the word/state changes). Count rides the far right.
+                    Item {
+                        Layout.preferredWidth: 142
+                        Layout.fillHeight: true
+                        AgentStatusText {
+                            anchors.centerIn: parent
+                            readonly property string m: AgentService.headlineMode
+                            word: m === "permission" ? "Needs you" : m === "waiting" ? "Waiting" : m === "working" ? "Working" : "Agent Island"
+                            animateDots: m === "working" || m === "waiting"
+                            shimmer: m === "working" || m === "waiting" || m === "permission"
+                            pixelSize: Appearance.font.pixelSize.small
+                        }
+                        StyledText {
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            visible: AgentService.sessionCount > 1
+                            text: AgentService.sessionCount
+                            color: IslandStyle.subtextColor
+                            font.pixelSize: Appearance.font.pixelSize.small
+                        }
                     }
                 }
 

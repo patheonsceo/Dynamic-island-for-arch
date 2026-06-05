@@ -20,7 +20,7 @@ Singleton {
         const xdg = Quickshell.env("XDG_RUNTIME_DIR");
         return (xdg && xdg.length > 0 ? xdg : "/tmp") + "/openagentisland.sock";
     }
-    property bool debug: true
+    property bool debug: false  // set true to log every received line to the qs log
 
     // session_id → { project, cwd, tool, summary, message, lastEvent, status, ts }
     property var sessions: ({})

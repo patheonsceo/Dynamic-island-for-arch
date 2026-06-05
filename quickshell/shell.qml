@@ -75,13 +75,3 @@ ShellRoot {
         onPressed: root.cyclePanelFamily()
     }
 }
-
-
-
-
-
-
-
-
-
-

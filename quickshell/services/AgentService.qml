@@ -46,7 +46,7 @@ Singleton {
             const s = root.sessionList[i];
             if (s.status === "waiting")
                 return "waiting";
-            if (s.status === "working")
+            if (s.status === "working" || s.status === "running")
                 m = "working";
         }
         return m;
@@ -72,11 +72,11 @@ Singleton {
     function statusFor(event, prev) {
         switch (event) {
         case "SessionStart": return "idle";
-        case "UserPromptSubmit": return "running";
-        case "PreToolUse": return "running";
-        case "PostToolUse": return "running";
+        case "UserPromptSubmit": return "working";
+        case "PreToolUse": return "working";
+        case "PostToolUse": return "working";
         case "Notification": return "waiting";
-        case "Stop": return "idle";
+        case "Stop": return "done";
         default: return prev || "idle";
         }
     }
@@ -212,6 +212,14 @@ Singleton {
             return JSON.stringify({
                 "sessions": Object.keys(root.sessions).length,
                 "pending": root.pendingPermissions.length
+            });
+        }
+        function dump(): string {
+            return JSON.stringify({
+                "active": root.active,
+                "headlineMode": root.headlineMode,
+                "sessionCount": root.sessionCount,
+                "statuses": root.sessionList.map(s => s.id + ":" + s.status)
             });
         }
         function allowOldest(): string {

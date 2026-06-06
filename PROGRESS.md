@@ -7,39 +7,45 @@ lives in `NOTES.md`.
 
 ## Current phase & status
 
-**FEATURE-COMPLETE; GO-LIVE BLOCKED by a MULTI-MONITOR bug (2026-06-07).** All
-features built + polished + validated in the SINGLE-SCREEN nested dev window. The
-headline feature (live Claude Code agent + permission Allow/Deny from the notch)
-is safety-proven (13/13, never hangs Claude) and worked on a real `claude`
-session. BUT the first real-desktop switch (Path A: `qsConfig` ii→openagentisland)
-**broke on the user's multi-monitor setup** — see the blocker below. User has
-**reverted to `ii`** (safe) and **hooks are DISABLED** (island isn't running on
-ii, so the hooks just fire-and-fallback). Tree is clean / all committed.
+**FEATURE-COMPLETE; multi-monitor GO-LIVE BLOCKER — ROOT-CAUSED + FIXED in repo,
+pending a real 3-monitor re-test (2026-06-07).** All features built + polished +
+validated in the SINGLE-SCREEN nested dev window. The headline feature (live
+Claude Code agent + permission Allow/Deny from the notch) is safety-proven (13/13,
+never hangs Claude) and worked on a real `claude` session. The first real-desktop
+switch (Path A) **blanked the scaled + rotated monitors**; root cause found and
+fixed (below). User is still on `ii` (safe); **hooks DISABLED** until re-test.
 
-### 🚨 GO-LIVE BLOCKER — multi-monitor rendering (NEXT SESSION, top priority)
-On switching the real desktop to `openagentisland` (3 monitors: a main external,
-the laptop's built-in display, and a vertical screen):
-- The **main external monitor** showed the islands/top strip.
-- The **built-in display AND the vertical monitor went COMPLETELY BLANK.**
-- **Screen sizing was also wrong.**
-User reverted to `ii`. **Pictures incoming after compaction.**
-Why it slipped: multi-monitor was NEVER testable in the single-screen nested
-window (flagged in Phase 8d). **Leading suspects to investigate:**
-1. The **always-full-screen notch window** — `IslandNotch.qml` sets
-   `implicitWidth: notchWindow.screen.width; implicitHeight: notchWindow.screen.height`
-   (so the click-catcher works) on a top-anchored, transparent, masked-to-notch
-   Top-layer window. Per-monitor this may mis-size / render opaque-black / cover
-   the wallpaper (Background, Bottom layer) on secondary monitors → "blank".
-2. **Per-monitor scaling/resolution** — `screen.width/height` may be off for
-   secondary/rotated (vertical) monitors → wrong sizing, oversized windows.
-3. The `Variants { model: Quickshell.screens }` wrapping renders all 3 islands on
-   every monitor — verify each actually targets its own screen and the masks/
-   exclusiveZone behave per-monitor.
-4. Background/wallpaper layer not rendering on the non-primary monitors.
-**Plan:** get the pics; reproduce SAFELY (don't full-switch — maybe spin a 2nd
-test config or inspect `Quickshell.screens` values on the real multi-monitor
-setup); fix the full-screen-notch + sizing; re-verify on all 3 monitors before
-any re-switch. The Path-A switch + revert is one line:
+### ✅ MULTI-MONITOR BLANKING — root cause found + fixed
+**Symptom (Path A switch, 3 monitors):** only the main external monitor worked;
+the laptop built-in and the vertical monitor went COMPLETELY BLANK (no wallpaper /
+dock / islands), plus wrong sizing. Confirmed by photos + `monitors.lua`:
+- `HDMI-A-1` 2560×1440 **scale 1.0, no transform** → logical == physical → **worked**.
+- `eDP-1` 2880×1800 **scale 1.5** → logical 1920×1200 → **blank**.
+- `DP-3` 1920×1080 **transform 1 (rotated)** → logical 1080×1920 → **blank**.
+
+**Root cause:** `IslandNotch.qml` sized its PanelWindow with PHYSICAL pixels —
+`implicitWidth: screen.width; implicitHeight: screen.height`. Layer-shell surfaces
+use LOGICAL coords, so on any monitor with scale≠1 or a rotation the full-screen
+Top-layer surface was oversized/mis-axed and **broke compositing for the whole
+output** (everything on it went black, wallpaper included). The one scale-1.0,
+unrotated monitor was the only one where physical==logical, so it alone rendered.
+The notch was the SOLE violator — every other panel (Background, Dock, left/right
+islands) is content-/edge-sized and survived; their disappearance on the dead
+monitors was collateral from the broken output, not their own bug.
+
+**Fix (commit pending):** anchor the notch window `top+left+right` (logical
+full-width per monitor) + fixed `implicitHeight: maxHeight+60`; removed both
+`screen.width/height`. `exclusiveZone` (40) still honored (anchored top + both
+perpendicular edges). This matches the framework's `Background`/`Dock` pattern,
+which is already proven on all 3 of the user's monitors under `ii`. Trade-off: the
+outside-click-to-close catcher now covers the top ~460px instead of the full
+screen (Esc / re-click the pill still close); fine since surfaces hang from the top.
+
+**Re-test plan:** user re-switches Path A and checks ALL 3 monitors render
+wallpaper + islands + dock; if a secondary monitor's wallpaper still looks
+mis-scaled, that's a separate `Background` parallax tweak (also uses `screen.width`
+in its zoom math) — but it renders fine under `ii`, so likely a non-issue.
+Path-A switch + revert is one line:
 `~/.config/hypr/hyprland/variables.lua` → `hl.env("qsConfig", "ii"/"openagentisland")`.
 
 Toggle hooks for real Claude work (currently DISABLED):

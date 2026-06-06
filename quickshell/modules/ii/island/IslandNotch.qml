@@ -124,18 +124,25 @@ Scope {
 
             anchors {
                 top: true
+                left: true
+                right: true
             }
             margins {
                 top: 0
             }
 
-            // ALWAYS screen-sized + top-anchored so the window never resizes or
-            // re-centers (that caused the notch to slide horizontally). It's
-            // transparent and masked to just the notch body when idle (everything
-            // else click-through); masked to the whole window while open so its
-            // catcher can receive outside-clicks. exclusiveZone stays a stable 40.
-            implicitWidth: notchWindow.screen.width
-            implicitHeight: notchWindow.screen.height
+            // Full-WIDTH (both side edges anchored) + fixed logical height. Anchoring
+            // left+right makes the width track each monitor's LOGICAL width, which is
+            // CRITICAL on scaled (eDP-1 @1.5) and rotated (DP-3 transform 1) outputs:
+            // the old `screen.width/height` returns PHYSICAL mode pixels, so on those
+            // monitors the surface was oversized/mis-axed and the whole output blanked.
+            // Height is a fixed logical value tall enough for the tallest open surface
+            // (dashboard h=360); exclusiveZone (40) is still honored because we anchor
+            // top + both perpendicular edges (not bottom). The window stays a stable
+            // size so the notch never slides; it's transparent and masked to just the
+            // notch body when idle (rest click-through), to the whole window while open
+            // so the catcher receives outside-clicks.
+            implicitHeight: root.maxHeight + 60
             // Masked to the notch body normally; to the whole (full-screen) window
             // while open, so outside-clicks reach the catcher below the notch.
             mask: Region {

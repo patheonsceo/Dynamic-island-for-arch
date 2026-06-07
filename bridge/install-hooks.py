@@ -19,7 +19,8 @@ import sys
 import time
 
 SETTINGS = os.path.expanduser("~/.claude/settings.json")
-HOOK = "/home/topg/Projects/openagentisland/bridge/oai_hook.py"
+# Resolve oai_hook.py next to this script, so the repo works wherever it's cloned.
+HOOK = os.path.join(os.path.dirname(os.path.abspath(__file__)), "oai_hook.py")
 
 STATUS_EVENTS = ["SessionStart", "UserPromptSubmit", "PostToolUse", "Notification", "Stop", "SessionEnd"]
 PERM_MATCHER = "Bash|Write|Edit|MultiEdit|NotebookEdit"

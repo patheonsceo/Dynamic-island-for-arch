@@ -1,23 +1,23 @@
 {
-  "_comment": "Merge the 'hooks' block below into ~/.claude/settings.json to enable the OpenAgentIsland bridge. Status hooks are fire-and-forget; the PreToolUse hook is the blocking Allow/Deny one, gated to mutating/risky tools. Remove the block to disable. Safe whether or not the island is running.",
+  "_comment": "REFERENCE ONLY. Prefer: `python3 bridge/install-hooks.py enable` (auto-resolves paths, adds SessionEnd, backs up settings.json). This shows the shape it installs: status hooks are fire-and-forget; the PreToolUse hook is the blocking Allow/Deny one, gated to mutating/risky tools. Replace /path/to/openagentisland with your clone path if merging by hand. Safe whether or not the island is running.",
   "hooks": {
     "SessionStart": [
-      { "matcher": "", "hooks": [ { "type": "command", "command": "python3 /home/topg/Projects/openagentisland/bridge/oai_hook.py status", "timeout": 10 } ] }
+      { "matcher": "", "hooks": [ { "type": "command", "command": "python3 /path/to/openagentisland/bridge/oai_hook.py status", "timeout": 10 } ] }
     ],
     "UserPromptSubmit": [
-      { "matcher": "", "hooks": [ { "type": "command", "command": "python3 /home/topg/Projects/openagentisland/bridge/oai_hook.py status", "timeout": 10 } ] }
+      { "matcher": "", "hooks": [ { "type": "command", "command": "python3 /path/to/openagentisland/bridge/oai_hook.py status", "timeout": 10 } ] }
     ],
     "PostToolUse": [
-      { "matcher": "", "hooks": [ { "type": "command", "command": "python3 /home/topg/Projects/openagentisland/bridge/oai_hook.py status", "timeout": 10 } ] }
+      { "matcher": "", "hooks": [ { "type": "command", "command": "python3 /path/to/openagentisland/bridge/oai_hook.py status", "timeout": 10 } ] }
     ],
     "Notification": [
-      { "matcher": "", "hooks": [ { "type": "command", "command": "python3 /home/topg/Projects/openagentisland/bridge/oai_hook.py status", "timeout": 10 } ] }
+      { "matcher": "", "hooks": [ { "type": "command", "command": "python3 /path/to/openagentisland/bridge/oai_hook.py status", "timeout": 10 } ] }
     ],
     "Stop": [
-      { "matcher": "", "hooks": [ { "type": "command", "command": "python3 /home/topg/Projects/openagentisland/bridge/oai_hook.py status", "timeout": 10 } ] }
+      { "matcher": "", "hooks": [ { "type": "command", "command": "python3 /path/to/openagentisland/bridge/oai_hook.py status", "timeout": 10 } ] }
     ],
     "PreToolUse": [
-      { "matcher": "Bash|Write|Edit|MultiEdit|NotebookEdit", "hooks": [ { "type": "command", "command": "python3 /home/topg/Projects/openagentisland/bridge/oai_hook.py permission", "timeout": 30 } ] }
+      { "matcher": "Bash|Write|Edit|MultiEdit|NotebookEdit", "hooks": [ { "type": "command", "command": "python3 /path/to/openagentisland/bridge/oai_hook.py permission", "timeout": 30 } ] }
     ]
   }
 }

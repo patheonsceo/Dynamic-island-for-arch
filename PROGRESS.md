@@ -73,6 +73,32 @@ Toggle hooks for real Claude work (currently DISABLED):
 
 ## Done (newest first)
 
+- **2026-06-07 — CRITICAL GOTCHA: real desktop is a LUA-config Hyprland.** The
+  standard dispatch form `Hyprland.dispatch("focuswindow address:…")` /
+  `"workspace N"` SILENTLY NO-OPS on the user's real desktop (verified live:
+  workspace didn't change). It only works in the nested dev window (vanilla
+  Hyprland) — which is why island workspace/window dispatches "worked" in dev but
+  not live. The correct form is the LUA API: `hl.dsp.focus({window = "address:…"})`,
+  `hl.dsp.focus({workspace = N})`, `hl.dsp.window.move({…})`, `hl.dsp.window.close({…})`
+  (same forms the upstream end-4 OverviewWidget uses). ⚠️ STILL TO FIX: our
+  `IslandWorkspaces.qml` (`workspace e±1`, `workspace N`) and `OverviewSurface.qml`
+  (focuswindow/workspace/movetoworkspacesilent/closewindow) still use the standard
+  form → workspace switching from the islands is BROKEN on the real desktop. Jump
+  and the agent UI are fixed; these are the remaining standard-dispatch callers.
+
+- **2026-06-07 — Session permission-mode shown + live-synced.** Hook reports
+  `permission_mode`; a colored ModeChip on each session row / permission card shows
+  Bypass / Auto-edit / Plan (live from the terminal, updates on Shift+Tab) and
+  island-side Auto:<tool> / Bypass from notch Allow-All/Bypass. (A hook cannot SET
+  the terminal's mode — the notch reflects/augments, can't flip it.) Verified the
+  notch Allow-All auto-rule DOES work (next same-tool request auto-allowed, no UI).
+
+- **2026-06-07 — Jump-to-terminal fixed (Lua dispatch + Warp disambiguation).**
+  Was broken because it used the standard dispatch form (see gotcha above) and
+  because Warp shares one PID across all its windows. Now uses `hl.dsp.focus` and,
+  when multiple windows share a PID, picks the one whose title best matches the
+  session prompt/summary.
+
 - **2026-06-06 — Jump-to-terminal (the previously-skipped feature).** Each session
   row in the agent list has an `open_in_new` button → focuses the terminal running
   that Claude session (switches workspace if needed). Mechanism: `oai_hook.py` sends

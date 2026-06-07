@@ -77,7 +77,7 @@ Scope {
                         Behavior on color { ColorAnimation { duration: 150; easing.type: Easing.OutQuad } }
                     }
                     HoverHandler { id: searchHover }
-                    TapHandler { onTapped: Island.toggle("launcher") }
+                    TapHandler { onTapped: Island.toggle("launcher", islandWindow.screen.name) }
                 }
 
                 // ---- 2) workspaces ----
@@ -128,7 +128,7 @@ Scope {
                         Behavior on color { ColorAnimation { duration: 150; easing.type: Easing.OutQuad } }
                     }
                     HoverHandler { id: overviewHover }
-                    TapHandler { onTapped: Island.toggle("overview") }
+                    TapHandler { onTapped: Island.toggle("overview", islandWindow.screen.name) }
                 }
 
                 // ---- 5) network ----

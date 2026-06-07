@@ -23,10 +23,6 @@ FocusScope {
     property bool viewList: false   // peek the list while a permission is pending
     onHasPermissionChanged: if (hasPermission) surf.viewList = false  // new permission → show the card
 
-    function title(project, summary) {
-        const s = (summary && summary !== "{}") ? summary : "";
-        return (project || "session") + (s ? "  ·  " + s : "");
-    }
     function relTime(ts) {
         if (!ts)
             return "";
@@ -121,10 +117,10 @@ FocusScope {
                     AgentSpinner { Layout.alignment: Qt.AlignVCenter; mode: "permission"; pixel: 2 }
                     ColumnLayout {
                         Layout.fillWidth: true
-                        spacing: -1
+                        spacing: 2
                         StyledText {
                             Layout.fillWidth: true
-                            text: surf.title(p?.project ?? "", sess?.summary ?? "")
+                            text: (p?.project ?? "") || "session"
                             font.pixelSize: Appearance.font.pixelSize.small
                             font.weight: Font.DemiBold
                             color: IslandStyle.textColor
@@ -136,6 +132,8 @@ FocusScope {
                             text: "You: " + (sess?.prompt ?? "")
                             font.pixelSize: Appearance.font.pixelSize.smaller
                             color: IslandStyle.subtextColor
+                            wrapMode: Text.Wrap
+                            maximumLineCount: 2
                             elide: Text.ElideRight
                         }
                     }
@@ -363,7 +361,7 @@ FocusScope {
                         anchors.leftMargin: 12
                         anchors.rightMargin: 12
                         anchors.topMargin: 8
-                        spacing: 3
+                        spacing: 6
 
                         RowLayout {
                             Layout.fillWidth: true
@@ -377,7 +375,7 @@ FocusScope {
                             }
                             StyledText {
                                 Layout.fillWidth: true
-                                text: surf.title(srow.modelData.project, srow.modelData.summary)
+                                text: srow.modelData.project || "session"
                                 font.pixelSize: Appearance.font.pixelSize.small
                                 font.weight: Font.DemiBold
                                 color: IslandStyle.textColor
@@ -395,21 +393,41 @@ FocusScope {
                         ColumnLayout {
                             Layout.fillWidth: true
                             Layout.leftMargin: 19
+                            Layout.topMargin: 3
                             visible: srow.expanded
-                            spacing: 1
+                            spacing: 6
+                            // the user's request — given room to breathe (up to 2 lines)
                             StyledText {
                                 Layout.fillWidth: true
                                 visible: (srow.modelData.prompt || "") !== ""
                                 text: "You: " + srow.modelData.prompt
                                 font.pixelSize: Appearance.font.pixelSize.smaller
                                 color: IslandStyle.subtextColor
+                                wrapMode: Text.Wrap
+                                maximumLineCount: 2
                                 elide: Text.ElideRight
                             }
-                            StyledText {
+                            // status + current action (the command) as a SHORT, dimmed,
+                            // single-line tail — never mushed into the title anymore
+                            RowLayout {
                                 Layout.fillWidth: true
-                                text: surf.statusLabel(srow.modelData.status)
-                                font.pixelSize: Appearance.font.pixelSize.smaller
-                                color: surf.statusColor(srow.modelData.status)
+                                spacing: 8
+                                StyledText {
+                                    text: surf.statusLabel(srow.modelData.status)
+                                    font.pixelSize: Appearance.font.pixelSize.smaller
+                                    font.weight: Font.DemiBold
+                                    color: surf.statusColor(srow.modelData.status)
+                                }
+                                StyledText {
+                                    Layout.fillWidth: true
+                                    visible: (srow.modelData.summary || "") !== "" && srow.modelData.summary !== "{}"
+                                    text: srow.modelData.summary
+                                    font.family: "monospace"
+                                    font.pixelSize: Appearance.font.pixelSize.smaller
+                                    color: IslandStyle.subtextColor
+                                    opacity: 0.7
+                                    elide: Text.ElideRight
+                                }
                             }
                         }
                     }

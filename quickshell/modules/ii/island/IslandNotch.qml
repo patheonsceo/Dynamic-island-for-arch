@@ -11,6 +11,7 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Widgets
+import Quickshell.Hyprland
 import Quickshell.Services.Mpris
 
 // Center notch — top-attached, morphing. THE STAR.
@@ -92,14 +93,23 @@ Scope {
         }
     }
 
+    // The monitor that currently has keyboard focus — where auto-opened surfaces
+    // (e.g. an incoming permission) should appear. Falls back to the first screen.
+    function focusedScreenName() {
+        const n = Hyprland.focusedMonitor?.name ?? "";
+        if (n.length > 0)
+            return n;
+        return Quickshell.screens.length > 0 ? (Quickshell.screens[0].name ?? "") : "";
+    }
+
     // Permission is top-priority + sticky: auto-open the agent surface when a
-    // request arrives (if nothing else is open), and close back to compact when
-    // the last one is resolved.
+    // request arrives (if nothing else is open) on the FOCUSED monitor, and close
+    // back to compact when the last one is resolved.
     Connections {
         target: AgentService
         function onPendingPermissionsChanged() {
             if (AgentService.pendingPermissions.length > 0 && Island.openSurface === "")
-                Island.open("agent");
+                Island.open("agent", root.focusedScreenName());
             else if (AgentService.pendingPermissions.length === 0 && Island.openSurface === "agent")
                 Island.close();
         }
@@ -115,38 +125,35 @@ Scope {
 
             WlrLayershell.namespace: "quickshell:islandNotch"
             WlrLayershell.layer: WlrLayer.Top
-            // Grab keyboard only while a surface is open (Esc / tab-nav / search typing).
-            WlrLayershell.keyboardFocus: notchWindow.islandState === "open" ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+            // Grab keyboard only while THIS monitor's surface is open (Esc / search typing).
+            WlrLayershell.keyboardFocus: notchWindow.ownsOpen ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
             color: "transparent"
-            // Reserve the top strip so windows open below the island row.
-            exclusionMode: ExclusionMode.Normal
-            exclusiveZone: root.reservedStrip
+            // Floating island — don't reserve a strip; windows pass under it like the
+            // left/right islands (wallpaper breathes through the gaps).
+            exclusionMode: ExclusionMode.Ignore
+            exclusiveZone: 0
 
+            // ALL FOUR edges anchored → the window fills the monitor in LOGICAL
+            // coordinates (like the framework's Background), correct on scaled
+            // (eDP-1 @1.5) and rotated (DP-3) outputs. (Sizing via screen.width/height
+            // — PHYSICAL pixels — is what blanked those monitors before.) Being
+            // full-screen restores the click-anywhere-to-close catcher. It's
+            // transparent and masked to just the notch body normally (rest is
+            // click-through), to the whole screen while THIS monitor's surface is open.
             anchors {
                 top: true
+                bottom: true
                 left: true
                 right: true
             }
-            margins {
-                top: 0
-            }
 
-            // Full-WIDTH (both side edges anchored) + fixed logical height. Anchoring
-            // left+right makes the width track each monitor's LOGICAL width, which is
-            // CRITICAL on scaled (eDP-1 @1.5) and rotated (DP-3 transform 1) outputs:
-            // the old `screen.width/height` returns PHYSICAL mode pixels, so on those
-            // monitors the surface was oversized/mis-axed and the whole output blanked.
-            // Height is a fixed logical value tall enough for the tallest open surface
-            // (dashboard h=360); exclusiveZone (40) is still honored because we anchor
-            // top + both perpendicular edges (not bottom). The window stays a stable
-            // size so the notch never slides; it's transparent and masked to just the
-            // notch body when idle (rest click-through), to the whole window while open
-            // so the catcher receives outside-clicks.
-            implicitHeight: root.maxHeight + 60
-            // Masked to the notch body normally; to the whole (full-screen) window
-            // while open, so outside-clicks reach the catcher below the notch.
+            // This monitor owns the open surface? Only ONE monitor shows a surface at
+            // a time (see Island.qml) — so opening on this screen doesn't expand the
+            // notch on the others.
+            readonly property bool ownsOpen: Island.openSurface !== "" && Island.openScreen === (notchWindow.screen.name ?? "")
+
             mask: Region {
-                item: notchWindow.islandState === "open" ? fullMaskItem : notch
+                item: notchWindow.ownsOpen ? fullMaskItem : notch
             }
             Item { id: fullMaskItem; anchors.fill: parent }
 
@@ -157,8 +164,9 @@ Scope {
             property string displaySource: expandedSource !== "" ? expandedSource
                 : (AgentService.active ? "agent"
                 : (root.mediaActive ? "media" : ""))
-            // open (a named surface is up) outranks transient OSDs, which outrank idle.
-            property string islandState: Island.openSurface !== "" ? "open"
+            // open (a named surface is up ON THIS MONITOR) outranks transient OSDs,
+            // which outrank idle.
+            property string islandState: notchWindow.ownsOpen ? "open"
                 : (displaySource !== "" ? "expanded" : "idle")
 
             Timer {
@@ -320,8 +328,9 @@ Scope {
                     // surface is open, surfaceHost's absorber catches clicks (no
                     // accidental close); close via Esc or re-clicking the trigger pill.
                     onClicked: {
-                        if (Island.openSurface === "")
-                            Island.open(notchWindow.displaySource === "agent" ? "agent" : "dashboard");
+                        // open on THIS monitor (moves the surface here if another had it)
+                        Island.open(notchWindow.displaySource === "agent" ? "agent" : "dashboard",
+                                    notchWindow.screen.name);
                     }
                 }
 

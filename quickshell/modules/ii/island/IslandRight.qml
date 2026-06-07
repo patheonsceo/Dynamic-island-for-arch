@@ -279,7 +279,7 @@ Scope {
                     }
                     HoverHandler { id: captureHover }
                     TapHandler {
-                        onTapped: Island.toggle("tools")
+                        onTapped: Island.toggle("tools", islandWindow.screen.name)
                     }
                 }
 
@@ -314,7 +314,7 @@ Scope {
                     }
                     HoverHandler { id: powerHover }
                     TapHandler {
-                        onTapped: Island.toggle("power")
+                        onTapped: Island.toggle("power", islandWindow.screen.name)
                     }
                 }
             }

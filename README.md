@@ -13,7 +13,19 @@ When a Claude Code session asks to run a command or edit a file, the request app
 you approve or deny it without leaving your work — plus jump-to-terminal, multi-session tracking, and a
 live view of each session's permission mode.
 
-<!-- TODO: add screenshots / a short gif here -->
+## Screenshots
+
+![The three floating islands over the wallpaper](docs/screenshots/desktop.png)
+
+The island row — left (search · workspaces · weather · overview · network), the morphing
+center notch, and right (resources · clock · battery · tray · power):
+
+![Island row close-up](docs/screenshots/islands.png)
+
+The headline feature — a Claude Code permission request, approved right from the notch
+(Deny · Allow Once · Allow All · Bypass):
+
+![Claude Code permission card in the notch](docs/screenshots/permission-card.png)
 
 ---
 

@@ -115,6 +115,8 @@ Singleton {
             "status": st,
             // process-ancestor PIDs (terminal window is one of them) — for jump-to-terminal
             "pids": (obj.pids && obj.pids.length > 0) ? obj.pids : (prev.pids || []),
+            // terminal's permission mode (default|acceptEdits|plan|bypassPermissions)
+            "mode": (obj.mode && obj.mode.length > 0) ? obj.mode : (prev.mode || "default"),
             "ts": obj.ts || 0,
             "doneTick": st === "done" ? root._tick : 0,
             "waitTick": st === "waiting" ? (prev.status === "waiting" ? (prev.waitTick || root._tick) : root._tick) : 0,
@@ -161,6 +163,19 @@ Singleton {
 
     function _autoAllowed(sid, tool) {
         return root._sessionBypass[sid] === true || root._toolAllow[sid + "|" + tool] === true;
+    }
+
+    // --- island-side auto-rule state (for display) ---
+    function isBypassed(sid) {
+        return root._sessionBypass[sid] === true;
+    }
+    function allowedToolsFor(sid) {
+        const out = [];
+        const pfx = sid + "|";
+        for (const k in root._toolAllow)
+            if (root._toolAllow[k] === true && k.indexOf(pfx) === 0)
+                out.push(k.slice(pfx.length));
+        return out;
     }
 
     function addPermission(obj, conn) {

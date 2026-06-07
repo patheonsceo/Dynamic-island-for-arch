@@ -87,6 +87,38 @@ FocusScope {
         Island.close();
     }
 
+    // Effective permission mode for a session: the island's own auto-rules take
+    // precedence (set from the notch), else the terminal's mode (synced live from
+    // the hook payload). "" → plain default (no chip).
+    function modeLabel(s) {
+        if (!s)
+            return "";
+        const sid = s.id || "";
+        if (AgentService.isBypassed(sid))
+            return "Bypass";
+        const tm = s.mode || "default";
+        if (tm === "bypassPermissions")
+            return "Bypass";
+        if (tm === "acceptEdits")
+            return "Auto-edit";
+        if (tm === "plan")
+            return "Plan";
+        const at = AgentService.allowedToolsFor(sid);
+        if (at.length > 0)
+            return "Auto: " + at.join(", ");
+        return "";
+    }
+    function modeColor(s) {
+        const l = surf.modeLabel(s);
+        if (l === "Bypass")
+            return surf.cRed;
+        if (l.indexOf("Auto") === 0)
+            return surf.cGreen;
+        if (l === "Plan")
+            return surf.cBlue;
+        return IslandStyle.subtextColor;
+    }
+
     // small rounded chip ("Claude")
     component Chip: Rectangle {
         property string label: ""
@@ -100,6 +132,26 @@ FocusScope {
             text: parent.label
             font.pixelSize: Appearance.font.pixelSize.smaller
             color: IslandStyle.subtextColor
+        }
+    }
+
+    // permission-mode chip — colored; hidden when the session is plain "default"
+    component ModeChip: Rectangle {
+        property var sess: null
+        readonly property string label: surf.modeLabel(sess)
+        readonly property color accent: surf.modeColor(sess)
+        visible: label !== ""
+        implicitHeight: 18
+        implicitWidth: mcText.implicitWidth + 14
+        radius: 5
+        color: Qt.rgba(accent.r, accent.g, accent.b, 0.18)
+        StyledText {
+            id: mcText
+            anchors.centerIn: parent
+            text: parent.label
+            font.pixelSize: Appearance.font.pixelSize.smaller
+            font.weight: Font.DemiBold
+            color: parent.accent
         }
     }
 
@@ -184,6 +236,7 @@ FocusScope {
                         }
                     }
                     Chip { Layout.alignment: Qt.AlignVCenter; label: "Claude" }
+                    ModeChip { Layout.alignment: Qt.AlignVCenter; sess: ({ "id": p?.session_id ?? "", "mode": sess?.mode ?? "default" }) }
                     StyledText {
                         Layout.alignment: Qt.AlignVCenter
                         visible: AgentService.pendingPermissions.length > 1
@@ -435,6 +488,7 @@ FocusScope {
                                 elide: Text.ElideRight
                             }
                             Chip { Layout.alignment: Qt.AlignVCenter; label: "Claude" }
+                            ModeChip { Layout.alignment: Qt.AlignVCenter; sess: srow.modelData }
                             StyledText {
                                 Layout.alignment: Qt.AlignVCenter
                                 text: surf.relTime(srow.modelData.ts)

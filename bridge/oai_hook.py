@@ -125,6 +125,9 @@ def base_msg(payload):
         "summary": summarize(payload),
         "message": message,
         "pids": ancestor_pids(),
+        # terminal's current permission mode (default|acceptEdits|plan|
+        # bypassPermissions) so the island can display + live-sync it.
+        "mode": payload.get("permission_mode", ""),
         "ts": int(time.time()),
     }
 
